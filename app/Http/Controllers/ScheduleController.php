@@ -124,11 +124,106 @@ class ScheduleController extends Controller
         ]);
     }
 
+    // ✅ NEW: Bulk create for multiple workers
+    public function bulkStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'schedules' => 'required|array',
+            'schedules.*.workerId' => 'required|exists:workers,id',
+            'schedules.*.jobdescId' => 'required|exists:jobdescs,id',
+            'schedules.*.supervisorId' => 'required|exists:workers,id',
+            'date' => 'required|date',
+            'startTime' => 'required',
+            'endTime' => 'required',
+            'location' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'error' => $validator->errors()->first()
+            ], 400);
+        }
+
+        // Parse timestamps
+        $dateArray = explode('-', $request->date);
+        $startArray = explode(':', $request->startTime);
+        $endArray = explode(':', $request->endTime);
+        $WIB_OFFSET = 7 * 60 * 60;
+
+        $startTimestamp = mktime(
+            (int)$startArray[0], (int)$startArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
+        ) - $WIB_OFFSET;
+
+        $endTimestamp = mktime(
+            (int)$endArray[0], (int)$endArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
+        ) - $WIB_OFFSET;
+
+        // Check conflicts for ALL workers
+        $workerIds = collect($request->schedules)->pluck('workerId')->toArray();
+        $supervisorIds = collect($request->schedules)->pluck('supervisorId')->unique()->toArray();
+
+        $conflicts = Schedule::where(function ($query) use ($workerIds, $supervisorIds) {
+            $query->whereIn('worker_id', $workerIds)
+                  ->orWhereIn('superfisor_id', $supervisorIds);
+        })
+        ->where(function ($query) use ($startTimestamp, $endTimestamp) {
+            $query->where('waktu_mulai', '<', $endTimestamp)
+                  ->where('waktu_selesai', '>', $startTimestamp);
+        })
+        ->with(['worker', 'supervisor'])
+        ->first();
+
+        if ($conflicts) {
+            $conflictPerson = in_array($conflicts->worker_id, $workerIds) ? 'Worker' : 'Supervisor';
+            $conflictStart = date('d M Y H:i', $conflicts->waktu_mulai);
+            $conflictEnd = date('H:i', $conflicts->waktu_selesai);
+
+            return response()->json([
+                'ok' => false,
+                'error' => "Konflik waktu! {$conflictPerson} sudah ada jadwal pada {$conflictStart} sampai {$conflictEnd} WIB"
+            ], 409);
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->schedules as $schedule) {
+                Schedule::create([
+                    'waktu_mulai' => $startTimestamp,
+                    'waktu_selesai' => $endTimestamp,
+                    'worker_id' => $schedule['workerId'],
+                    'jobdesc_id' => $schedule['jobdescId'],
+                    'superfisor_id' => $schedule['supervisorId'],
+                    'tempat' => $request->location,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'ok' => true,
+                'message' => 'Schedules created successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ✅ UPDATED: Bulk update for multiple workers
     public function bulkUpdate(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'scheduleIdsToDelete' => 'required|array',
-            'supervisorId' => 'required|exists:workers,id',
+            'schedules' => 'required|array',
+            'schedules.*.workerId' => 'required|exists:workers,id',
+            'schedules.*.jobdescId' => 'required|exists:jobdescs,id',
+            'schedules.*.supervisorId' => 'required|exists:workers,id',
             'date' => 'required|date',
             'startTime' => 'required',
             'endTime' => 'required',
@@ -160,20 +255,26 @@ class ScheduleController extends Controller
 
         DB::beginTransaction();
         try {
-            // Update all matching schedules
-            Schedule::whereIn('id', $request->scheduleIdsToDelete)
-                ->update([
+            // Delete old schedules ONCE
+            Schedule::whereIn('id', $request->scheduleIdsToDelete)->delete();
+
+            // Create new schedules for all workers
+            foreach ($request->schedules as $schedule) {
+                Schedule::create([
                     'waktu_mulai' => $startTimestamp,
                     'waktu_selesai' => $endTimestamp,
-                    'superfisor_id' => $request->supervisorId,
+                    'worker_id' => $schedule['workerId'],
+                    'jobdesc_id' => $schedule['jobdescId'],
+                    'superfisor_id' => $schedule['supervisorId'],
                     'tempat' => $request->location,
                 ]);
+            }
 
             DB::commit();
 
             return response()->json([
                 'ok' => true,
-                'id' => $request->scheduleIdsToDelete[0] ?? null,
+                'message' => 'Schedules updated successfully'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
