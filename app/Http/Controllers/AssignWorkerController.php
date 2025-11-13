@@ -92,7 +92,7 @@ class AssignWorkerController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('jadwal')->with('success', 'Successfully assigned ' . count($request->assignments) . ' worker(s)!');
+            return redirect()->route('schedule.page')->with('success', 'Successfully assigned ' . count($request->assignments) . ' worker(s)!');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to assign workers: ' . $e->getMessage())->withInput();
