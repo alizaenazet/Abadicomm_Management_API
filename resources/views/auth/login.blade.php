@@ -1,11 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-[80vh] flex items-center justify-center p-4 font-sans">
+<div class="flex justify-center items-center py-12 px-4">
   <div class="max-w-md w-full bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
     <div class="p-8 space-y-6">
       <div class="text-center">
-        <h2 class="text-3xl font-bold text-[#0066FF]">
+        {{-- <img src="{{ asset('images/logo_small.png') }}" alt="ABADI Comm Logo" class="w-16 h-16 mx-auto mb-4" /> --}}
+        <h2 class="text-3xl font-bold text-blue-600">
           Welcome Back!
         </h2>
         <p class="text-gray-600 mt-2">
@@ -13,27 +14,24 @@
         </p>
       </div>
 
-      @if (session('error'))
-        <div class="text-red-600 text-center text-sm">{{ session('error') }}</div>
-      @endif
-
-      @if ($errors->any())
-        <div class="text-red-600 text-center text-sm">{{ $errors->first() }}</div>
-      @endif
-
       <form method="POST" action="{{ route('login') }}" class="space-y-5">
         @csrf
 
-        {{-- Name input --}}
+        @if ($errors->any())
+        <div class="text-sm text-center text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
+          {{ $errors->first() }}
+        </div>
+        @endif
+
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
             Name
           </label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              {{-- Icon User --}}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.612 0 5.034.755 6.879 2.046M15 11a3 3 0 10-6 0 3 3 0 006 0z" />
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-gray-400">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
               </svg>
             </div>
             <input
@@ -41,59 +39,48 @@
               name="name"
               type="text"
               value="{{ old('name') }}"
-              required
               placeholder="Enter your name"
-              class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent transition"
+              required
+              autofocus
+              class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
             />
           </div>
         </div>
 
-        {{-- Password input --}}
         <div>
           <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
             Password
           </label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              {{-- Icon Lock --}}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c.828 0 1.5.672 1.5 1.5V16a1.5 1.5 0 01-3 0v-3.5c0-.828.672-1.5 1.5-1.5zM6 10V8a6 6 0 1112 0v2m-9 4h6" />
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-gray-400">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
             </div>
             <input
               id="password"
               name="password"
               type="password"
-              required
               placeholder="Enter your password"
-              class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent transition"
+              required
+              class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
             />
           </div>
         </div>
 
-        {{-- Error message --}}
-        @if ($errors->has('login'))
-          <p class="text-sm text-red-600 text-center">{{ $errors->first('login') }}</p>
-        @endif
-
-        {{-- Submit button --}}
         <button
           type="submit"
-          class="w-full flex justify-center items-center gap-3 py-3 px-4 rounded-lg text-white font-semibold transition bg-[#E63946] hover:bg-[#d62828]"
+          class="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-lg text-white font-semibold transition bg-red-600 hover:bg-red-700"
         >
-          {{-- Icon LogIn --}}
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 16l4-4m0 0l-4-4m4 4H3m13 4V8a2 2 0 012-2h3a2 2 0 012 2v8a2 2 0 01-2 2h-3a2 2 0 01-2-2z" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
           </svg>
           Login
         </button>
       </form>
-    </div>
-
-    {{-- 🔹 Footer optional --}}
-    <div class="bg-gray-50 border-t text-center text-sm py-3 text-gray-500">
-      Don’t have an account?
-      <a href="{{ route('register') }}" class="text-blue-600 hover:underline">Register</a>
     </div>
   </div>
 </div>
