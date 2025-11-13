@@ -79,21 +79,11 @@
         {{-- Submit button --}}
         <button
           type="submit"
-          class="w-full flex justify-center items-center gap-3 py-3 px-4 rounded-lg text-white font-semibold transition bg-[#E63946] hover:bg-[#d62828]"
+          class="w-full flex justify-center items-center gap-3 py-3 px-4 rounded-lg text-white font-semibold transition bg-blue-600 hover:bg-blue-700"
         >
-          {{-- Icon LogIn --}}
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 16l4-4m0 0l-4-4m4 4H3m13 4V8a2 2 0 012-2h3a2 2 0 012 2v8a2 2 0 01-2 2h-3a2 2 0 01-2-2z" />
-          </svg>
           Login
         </button>
       </form>
-    </div>
-
-    {{-- 🔹 Footer optional --}}
-    <div class="bg-gray-50 border-t text-center text-sm py-3 text-gray-500">
-      Don’t have an account?
-      <a href="{{ route('register') }}" class="text-blue-600 hover:underline">Register</a>
     </div>
   </div>
 </div>
