@@ -106,8 +106,147 @@ class ScheduleViewController extends Controller
             'jobdescs' => $jobdescs,
             'startDate' => $displayedDates[0]['formatted'],
             'endDate' => $displayedDates[count($displayedDates) - 1]['formatted'],
-
         ]);
+    }
+
+    /**
+     * Show edit schedule form
+     */
+    public function edit($dateKey, $supervisor, $start)
+    {
+        // Decode URL parameters
+        $dateKey = urldecode($dateKey);
+        $supervisor = urldecode($supervisor);
+        $start = urldecode($start);
+
+        // Find schedules matching this group
+        $startTimeParts = explode(':', $start);
+        $dateParts = explode('-', $dateKey);
+        $WIB_OFFSET = 7 * 60 * 60;
+
+        $searchStartTimestamp = mktime(
+            (int)$startTimeParts[0],
+            (int)$startTimeParts[1],
+            0,
+            (int)$dateParts[1],
+            (int)$dateParts[2],
+            (int)$dateParts[0]
+        ) - $WIB_OFFSET;
+
+        $schedules = Schedule::with(['worker', 'jobdesc', 'supervisor'])
+            ->where('superfisor_id', function($query) use ($supervisor) {
+                $query->select('id')
+                    ->from('workers')
+                    ->where('name', $supervisor)
+                    ->limit(1);
+            })
+            ->where('waktu_mulai', $searchStartTimestamp)
+            ->get();
+
+        if ($schedules->isEmpty()) {
+            return redirect()->route('schedule.page')->with('error', 'Schedule not found');
+        }
+
+        $firstSchedule = $schedules->first();
+        $startTime = Carbon::createFromTimestamp($firstSchedule->waktu_mulai, 'Asia/Jakarta');
+        $endTime = Carbon::createFromTimestamp($firstSchedule->waktu_selesai, 'Asia/Jakarta');
+
+        $workers = Worker::where('role_id', 2)->get(['id', 'name']);
+        $jobdescs = Jobdesc::all(['id', 'name']);
+        $supervisors = Worker::where('role_id', 1)->get(['id', 'name']);
+
+        $assignments = $schedules->map(function($schedule) {
+            return [
+                'id' => $schedule->id,
+                'workerId' => $schedule->worker_id,
+                'workerName' => $schedule->worker->name,
+                'jobdescId' => $schedule->jobdesc_id,
+                'jobdescName' => $schedule->jobdesc->name,
+                'supervisorId' => $schedule->superfisor_id,
+                'supervisorName' => $schedule->supervisor->name,
+                'tempat' => $schedule->tempat,
+            ];
+        })->toArray();
+
+        return view('edit-schedule', compact(
+            'schedules',
+            'assignments',
+            'dateKey',
+            'startTime',
+            'endTime',
+            'workers',
+            'jobdescs',
+            'supervisors'
+        ));
+    }
+
+    /**
+     * Update schedule
+     */
+    public function update(Request $request)
+    {
+        $request->validate([
+            'scheduleIds' => 'required|array|min:1',
+            'date' => 'required|date',
+            'location' => 'required|string',
+            'startTime' => 'required',
+            'endTime' => 'required',
+            'assignments' => 'required|array|min:1',
+            'assignments.*.workerId' => 'required|exists:workers,id',
+            'assignments.*.jobdescId' => 'required|exists:jobdescs,id',
+            'assignments.*.supervisorId' => 'required|exists:workers,id',
+        ]);
+
+        // Check for duplicate workers
+        $workerIds = collect($request->assignments)->pluck('workerId');
+        if ($workerIds->count() !== $workerIds->unique()->count()) {
+            return back()->with('error', 'Duplicate workers detected in assignments')->withInput();
+        }
+
+        // Validate time
+        if ($request->startTime >= $request->endTime) {
+            return back()->with('error', 'End time must be after start time')->withInput();
+        }
+
+        // Parse timestamps
+        $dateArray = explode('-', $request->date);
+        $startArray = explode(':', $request->startTime);
+        $endArray = explode(':', $request->endTime);
+        $WIB_OFFSET = 7 * 60 * 60;
+
+        $startTimestamp = mktime(
+            (int)$startArray[0], (int)$startArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
+        ) - $WIB_OFFSET;
+
+        $endTimestamp = mktime(
+            (int)$endArray[0], (int)$endArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
+        ) - $WIB_OFFSET;
+
+        DB::beginTransaction();
+        try {
+            // Delete old schedules
+            Schedule::whereIn('id', $request->scheduleIds)->delete();
+
+            // Create new schedules
+            foreach ($request->assignments as $assignment) {
+                Schedule::create([
+                    'waktu_mulai' => $startTimestamp,
+                    'waktu_selesai' => $endTimestamp,
+                    'worker_id' => $assignment['workerId'],
+                    'jobdesc_id' => $assignment['jobdescId'],
+                    'superfisor_id' => $assignment['supervisorId'],
+                    'tempat' => $request->location,
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->route('schedule.page')->with('success', 'Schedule updated successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to update schedule: ' . $e->getMessage())->withInput();
+        }
     }
 
     /**
@@ -478,16 +617,23 @@ class ScheduleViewController extends Controller
                     'id' => $key,
                     'dateKey' => $dateKey,
                     'supervisor_name' => $item['supervisor_name'],
+                    'supervisor_id' => $item['supervisor_id'],
                     'workers' => [],
                     'start' => $item['start_time'],
                     'end' => $item['end_time'],
+                    'scheduleIds' => [],
                 ];
             }
 
             $grouped[$key]['workers'][] = [
                 'worker_name' => $item['worker_name'],
+                'worker_id' => $item['worker_id'],
                 'jobdesc_name' => $item['jobdesc_name'],
+                'jobdesc_id' => $item['jobdesc_id'],
+                'tempat' => $item['tempat'],
             ];
+
+            $grouped[$key]['scheduleIds'][] = $item['id'];
         }
 
         $scheduleMap = [];

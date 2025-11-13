@@ -186,7 +186,8 @@
                                     @endphp
 
                                     <div style="grid-row-start: {{ $ev['gridRowStart'] }}; grid-row-end: span {{ $ev['gridRowSpan'] }}; grid-column-start: {{ $colStart }}; padding: 0.25rem; z-index: 5; position: relative;"
-                                        class="group cursor-pointer" onclick='openEditModal(@json($ev))'>
+                                        class="group cursor-pointer"
+                                        onclick="window.location.href='{{ route('schedule.edit', ['dateKey' => urlencode($d['formatted']), 'supervisor' => urlencode($ev['supervisor_name']), 'start' => urlencode($ev['start'])]) }}'">
                                         <div data-export-card="true"
                                             class="flex-1 min-w-0 p-2 border border-blue-200 rounded-lg bg-blue-50 shadow-sm overflow-hidden h-full relative transition hover:shadow-lg hover:bg-blue-100">
                                             <div data-export-truncate="true"
@@ -262,12 +263,6 @@
 
         function closeAlert() {
             document.getElementById('alertModal').classList.add('hidden');
-        }
-
-        function openEditModal(eventData) {
-            // TODO: Implement edit schedule modal
-            console.log('Edit event:', eventData);
-            showAlert('Fitur Edit Schedule akan segera hadir!');
         }
 
         // Date picker handler
