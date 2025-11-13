@@ -5,7 +5,7 @@
   <div class="max-w-4xl mx-auto p-8">
     <div class="mb-8">
       <div class="flex items-center gap-4 mb-4">
-        <a href="{{ route('jadwal') }}" class="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition font-medium">
+        <a href="{{ route('schedule.page') }}" class="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition font-medium">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
@@ -49,7 +49,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('jadwal.update') }}" id="editForm" class="space-y-6">
+    <form method="POST" action="{{ route('schedule.update') }}" id="editForm" class="space-y-6">
       @csrf
 
       {{-- Hidden: Schedule IDs to delete --}}
@@ -206,7 +206,7 @@
       </div>
 
       <div class="flex justify-center gap-4 pt-4">
-        <a href="{{ route('jadwal') }}" class="px-8 py-3 font-bold rounded-lg transition shadow-md hover:shadow-lg text-lg bg-gray-400 hover:bg-gray-500 text-white">
+        <a href="{{ route('schedule.page') }}" class="px-8 py-3 font-bold rounded-lg transition shadow-md hover:shadow-lg text-lg bg-gray-400 hover:bg-gray-500 text-white">
           Cancel
         </a>
         <button

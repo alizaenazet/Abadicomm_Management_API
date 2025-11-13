@@ -35,7 +35,7 @@
       @if (auth()->user()->role_id == 3)
         <a href="/assign" class="text-sm font-medium {{ request()->is('assign') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Assign Worker</a>
       @endif
-      <a href="/jadwal" class="text-sm font-medium {{ request()->is('jadwal*') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Schedule</a>
+      <a href="/schedule" class="text-sm font-medium {{ request()->is('schedule*') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Schedule</a>
     </div>
   </nav>
   @endauth
