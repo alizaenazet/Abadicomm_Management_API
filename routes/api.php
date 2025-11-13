@@ -9,7 +9,7 @@ use App\Http\Controllers\JobdescController;
 use App\Http\Controllers\ScheduleController;
 
 // Authentication Routes
-Route::post('/auth/login', action: [AuthController::class, 'login']);
+Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
 // API Routes
@@ -26,6 +26,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     Route::get('/schedules', [ScheduleController::class, 'index']);
     Route::post('/schedules', [ScheduleController::class, 'store']);
+    Route::post('/schedules/bulk', [ScheduleController::class, 'bulkStore']);
     Route::put('/schedules/bulk-update', [ScheduleController::class, 'bulkUpdate']);
     Route::delete('/schedules/{id}', [ScheduleController::class, 'destroy']);
 });
