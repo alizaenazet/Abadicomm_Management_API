@@ -7,72 +7,64 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
+    public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    // 🔹 Proses login
     public function login(Request $request)
-        {
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string',
-                'password' => 'required|string',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $validator->errors()->first()
-                ], 400);
-            }
-
-            $worker = Worker::where('name', $request->name)->first();
-
-            if (!$worker || !Hash::check($request->password, $worker->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid name or password.'
-                ], 401);
-            }
-
-            // buat token menggunakan Sanctum
-            $token = $worker->createToken('api-token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful!',
-                'role' => (string)$worker->role_id,
-                'worker' => $worker,
-                'token' => $token,
+    {
+        $credentials = $request->validate([
+            'name' => 'required|string',
+            'password' => 'required|string',
         ]);
+
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect()->route('dashboard');
+        }
+
+        return back()->withErrors(['login' => 'Nama atau password salah'])->withInput();
+    }
+
+    public function logout(Request $request)
+    {
+        $request->session()->forget(['worker_id', 'worker_role']);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+
+        public function showRegister()
+    {
+        return view('auth.register');
     }
 
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'name' => 'required|string|unique:workers,name',
-            'role' => 'required|in:1,2,3',
             'email' => 'required|email|unique:workers,email',
+            'role' => 'required|in:1,2,3',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first()
-            ], 400);
-        }
-
         $worker = Worker::create([
             'name' => $request->name,
-            'password' => Hash::make($request->password),
-            'role_id' => $request->role,
             'email' => $request->email,
+            'role_id' => $request->role,
+            'password' => Hash::make($request->password),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Registration successful!',
-            'worker' => $worker
-        ]);
+        return redirect()->route('dashboard')->with('success', 'Registrasi berhasil!');
     }
+
+
 
 }
