@@ -225,15 +225,19 @@
 
                 <!-- Filter + Export -->
                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
+                    <form method="GET" action="{{ route('schedule.page') }}" class="flex items-center gap-3">
                         <div class="flex flex-col">
                             <label class="text-sm text-gray-700 mb-1">Tanggal Mulai (Rentang 7 Hari)</label>
-                            <input type="date" id="startDate" value="{{ $startDate }}"
-                                class="px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
-                            <small class="text-xs text-gray-500 mt-1">Minggu: {{ $startDate }} s/d
-                                {{ $endDate }}</small>
+                            <input
+                                type="date"
+                                name="startDate"
+                                value="{{ $startDate }}"
+                                class="px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                onchange="this.form.submit()"
+                            />
+                            <small class="text-xs text-gray-500 mt-1">Minggu: {{ $startDate }} s/d {{ $endDate }}</small>
                         </div>
-                    </div>
+                    </form>
 
                     <button id="exportBtn" onclick="handleExport()"
                         class="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
@@ -264,23 +268,6 @@
         function closeAlert() {
             document.getElementById('alertModal').classList.add('hidden');
         }
-
-        // Date picker handler
-        document.getElementById('startDate').addEventListener('change', function(e) {
-            const newStartStr = e.target.value;
-            if (!newStartStr) return;
-
-            const newStartDate = new Date(newStartStr + 'T00:00:00');
-            const newEndDate = new Date(newStartDate);
-            newEndDate.setDate(newStartDate.getDate() + 6);
-            const newEndStr = newEndDate.toISOString().split('T')[0];
-
-            // Update URL parameters and reload
-            const url = new URL(window.location.href);
-            url.searchParams.set('start_date', newStartStr);
-            url.searchParams.set('end_date', newEndStr);
-            window.location.href = url.toString();
-        });
 
         // Export to PDF (using html2canvas and jsPDF)
         async function handleExport() {

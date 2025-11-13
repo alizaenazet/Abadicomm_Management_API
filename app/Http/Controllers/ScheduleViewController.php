@@ -26,30 +26,20 @@ class ScheduleViewController extends Controller
     public function showSchedulePage(Request $request)
     {
         // Get date range from request or use current week
-        $startDateInput = $request->query('start_date');
-        $endDateInput = $request->query('end_date');
-
-        if ($startDateInput && $endDateInput) {
-            // Use provided dates
-            $startDate = Carbon::parse($startDateInput);
-            $endDate = Carbon::parse($endDateInput);
-
-            $displayedDates = [];
-            for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                $displayedDates[] = [
-                    'formatted' => $date->format('Y-m-d'),
-                    'day' => $date->translatedFormat('l'),
-                    'date' => $date->format('d M'),
-                ];
-            }
+        if ($request->has('startDate') && $request->startDate) {
+            $startDate = $request->startDate;
+            $endDate = Carbon::parse($startDate)->addDays(6)->format('Y-m-d');
         } else {
-            // Get current week dates (Monday to Sunday)
-            $displayedDates = $this->getCurrentWeekDates();
+            $today = Carbon::now('Asia/Jakarta');
+            $startDate = $today->copy()->format('Y-m-d');
+            $endDate = $today->copy()->addDays(6)->format('Y-m-d');
         }
 
-        // Get week start and end timestamps
-        $weekStart = Carbon::parse($displayedDates[0]['formatted'])->startOfDay()->timestamp;
-        $weekEnd = Carbon::parse($displayedDates[count($displayedDates) - 1]['formatted'])->endOfDay()->timestamp;
+        $displayedDates = $this->generateDateRange($startDate, $endDate);
+
+        // Convert to timestamps
+        $weekStart = Carbon::parse($startDate)->startOfDay()->timestamp;
+        $weekEnd = Carbon::parse($endDate)->endOfDay()->timestamp;
 
         // Fetch raw schedule data for current week
         $rawSchedule = DB::table('schedules as s')
@@ -104,8 +94,8 @@ class ScheduleViewController extends Controller
             'timeSlots' => $this->getTimeSlots(),
             'workers' => $workers,
             'jobdescs' => $jobdescs,
-            'startDate' => $displayedDates[0]['formatted'],
-            'endDate' => $displayedDates[count($displayedDates) - 1]['formatted'],
+            'startDate' => $startDate,
+            'endDate' => $endDate,
         ]);
     }
 
@@ -570,6 +560,23 @@ class ScheduleViewController extends Controller
     }
 
     // Private helper methods
+
+    private function generateDateRange($start, $end)
+    {
+        $startD = Carbon::parse($start);
+        $endD = Carbon::parse($end);
+        $range = [];
+
+        for ($d = $startD->copy(); $d <= $endD; $d->addDay()) {
+            $range[] = [
+                'day' => $d->translatedFormat('l'),
+                'date' => $d->format('d M'),
+                'formatted' => $d->format('Y-m-d'),
+            ];
+        }
+
+        return $range;
+    }
 
     private function getCurrentWeekDates()
     {
