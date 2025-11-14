@@ -52,7 +52,7 @@
                 }
 
                 $totalCols = array_sum($supervisorSubCols) ?: 1;
-                $dayWidths[] = "minmax({$totalCols}50px, {$totalCols}fr)";
+                $dayWidths[] = "minmax(" . ($totalCols * 150) . "px, {$totalCols}fr)";
               }
 
               $TIME_SLOT_HEIGHT = 60;
@@ -112,86 +112,65 @@
               @endforeach
 
               {{-- BODY GRID --}}
-
-              {{-- Column 1: Time Axis --}}
-              <div class="col-start-1 sticky left-0 z-10" style="display: grid; grid-template-rows: repeat({{ count($timeSlots) }}, {{ $TIME_SLOT_HEIGHT }}px); grid-row-start: 3;">
-                @foreach ($timeSlots as $slot)
-                  <div class="px-4 py-2 text-sm font-medium text-gray-900 border-r border-b border-gray-100 bg-gray-50 box-border" style="height: {{ $TIME_SLOT_HEIGHT }}px;">
-                    {{ $slot }}
-                  </div>
-                @endforeach
-              </div>
-
-              {{-- Columns 2+: Day Columns (Schedule Area) --}}
-              @foreach ($displayedDates as $dayIndex => $d)
                 @php
-                  $events = $scheduleMap[$d['formatted']] ?? [];
-                  $supervisors = $supervisorMap[$d['formatted']] ?? [];
-
-                  $supervisorSubCols = [];
-                  foreach ($supervisors as $sup) {
-                    $supEvents = array_filter($events, fn($e) => $e['supervisor_name'] === $sup);
-                    $maxCols = 1;
-                    foreach ($supEvents as $e) {
-                      $maxCols = max($maxCols, $e['totalSubColumns'] ?? 1);
-                    }
-                    $supervisorSubCols[$sup] = $maxCols;
-                  }
-
-                  $totalSubCols = array_sum($supervisorSubCols) ?: 1;
+                $rowCount = count($timeSlots);
                 @endphp
 
-                <div class="relative grid border-l border-gray-300 {{ $dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white' }}"
-                     style="grid-template-rows: repeat({{ count($timeSlots) }}, {{ $TIME_SLOT_HEIGHT }}px);
-                            grid-template-columns: repeat({{ $totalSubCols }}, minmax(150px, 1fr));
-                            grid-column-start: {{ $dayIndex + 2 }};
-                            grid-row-start: 3;">
+                {{-- Grid utama (jam + semua hari) --}}
+                <div class="col-span-full"
+                    style="grid-column: 1 / -1; display: grid;
+                            grid-template-columns: 120px repeat({{ count($displayedDates) }}, 1fr);
+                            grid-template-rows: repeat({{ $rowCount }}, minmax({{ $TIME_SLOT_HEIGHT }}px, auto));">
 
-                  {{-- Background Grid Lines --}}
-                  @for ($i = 0; $i < count($timeSlots) * $totalSubCols; $i++)
-                    @php
-                      $row = floor($i / $totalSubCols) + 1;
-                      $col = ($i % $totalSubCols) + 1;
-                    @endphp
-                    <div style="grid-row: {{ $row }}; grid-column: {{ $col }}; height: {{ $TIME_SLOT_HEIGHT }}px;"
-                         class="border-b border-gray-100 box-border {{ $col < $totalSubCols ? 'border-r border-gray-100' : '' }}">
+                {{-- Kolom JAM --}}
+                @foreach ($timeSlots as $rowIndex => $slot)
+                    <div class="sticky left-0 z-10 bg-gray-50 border-b border-r border-gray-200 flex items-center justify-center text-sm font-semibold text-gray-700"
+                        style="grid-row: {{ $rowIndex + 1 }};">
+                    {{ $slot }}
                     </div>
-                  @endfor
+                @endforeach
 
-                  {{-- Render Schedule Events --}}
-                  @foreach ($events as $ev)
+                {{-- Kolom JADWAL PER HARI --}}
+                @foreach ($displayedDates as $dayIndex => $d)
                     @php
-                      $supIndex = array_search($ev['supervisor_name'], $supervisors);
-                      if ($supIndex === false) continue;
-
-                      $colOffset = 0;
-                      for ($i = 0; $i < $supIndex; $i++) {
-                        $colOffset += $supervisorSubCols[$supervisors[$i]];
-                      }
-
-                      $colStart = $colOffset + $ev['subColumn'] + 1;
+                    $events = $scheduleMap[$d['formatted']] ?? [];
+                    $supervisors = $supervisorMap[$d['formatted']] ?? [];
                     @endphp
 
-                    <div style="grid-row-start: {{ $ev['gridRowStart'] }};
-                                grid-row-end: span {{ $ev['gridRowSpan'] }};
-                                grid-column-start: {{ $colStart }};
-                                padding: 0.25rem;
-                                z-index: 1;">
+                    <div class="relative border-l border-gray-300 {{ $dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white' }}"
+                        style="grid-column: {{ $dayIndex + 2 }};
+                                display: grid;
+                                grid-template-rows: subgrid;
+                                grid-row: 1 / span {{ $rowCount }};">
 
-                      <div class="h-full p-2 border border-blue-200 rounded-lg bg-blue-50 shadow-sm overflow-hidden">
-                        <div class="text-blue-700 font-semibold mb-1 text-xs truncate">
-                          {{ $ev['supervisor_name'] }}
+                    {{-- Garis background --}}
+                    @foreach ($timeSlots as $r)
+                        <div class="border-b border-gray-100"></div>
+                    @endforeach
+
+                    {{-- Event --}}
+                    @foreach ($events as $ev)
+                        @php
+                        $rowStart = $ev['gridRowStart'];
+                        $rowSpan = $ev['gridRowSpan'];
+                        @endphp
+
+                        <div style="grid-row-start: {{ $rowStart }}; grid-row-end: span {{ $rowSpan }}; padding: 0.25rem;">
+                        <div class="h-full p-2 border border-blue-200 rounded-lg bg-blue-50 shadow-sm overflow-hidden">
+                            <div class="text-blue-700 font-semibold mb-1 text-xs truncate">
+                            {{ $ev['supervisor_name'] }}
+                            </div>
+                            @foreach ($ev['workers'] as $w)
+                            <div class="text-xs text-gray-700 leading-tight truncate">
+                                • {{ $w['worker_name'] }} – <span class="font-medium">{{ $w['jobdesc_name'] }}</span>
+                            </div>
+                            @endforeach
                         </div>
-                        @foreach ($ev['workers'] as $w)
-                          <div class="text-xs text-gray-700 leading-tight truncate">
-                            • {{ $w['worker_name'] }} – <span class="font-medium">{{ $w['jobdesc_name'] }}</span>
-                          </div>
-                        @endforeach
-                      </div>
+                        </div>
+                    @endforeach
                     </div>
-                  @endforeach
+                @endforeach
                 </div>
-              @endforeach
 
             </div>
           </div>

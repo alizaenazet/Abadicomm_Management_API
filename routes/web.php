@@ -18,21 +18,24 @@ use App\Http\Controllers\AssignWorkerController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    if (Auth::check()) {
+        return redirect('/dashboard');
+    }
+    return redirect('/login');
 });
 
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
+
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
     // Schedule Management
     Route::get('/schedule', [ScheduleViewController::class, 'showSchedulePage'])->name('schedule.page');
     Route::get('/schedule/edit/{dateKey}/{supervisor}/{start}', [ScheduleViewController::class, 'edit'])->name('schedule.edit');
