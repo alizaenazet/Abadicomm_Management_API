@@ -138,8 +138,8 @@
                         {{-- PERUBAHAN 1: Menggunakan $dayWidths agar kolom body sinkron dengan header --}}
                         <div class="col-span-full"
                             style="grid-column: 1 / -1; display: grid;
-                                   grid-template-columns: 120px {{ implode(' ', $dayWidths) }};
-                                   grid-template-rows: repeat({{ $rowCount }}, minmax({{ $TIME_SLOT_HEIGHT }}px, auto));">
+                                    grid-template-columns: 120px {{ implode(' ', $dayWidths) }};
+                                    grid-template-rows: repeat({{ $rowCount }}, minmax({{ $TIME_SLOT_HEIGHT }}px, auto));">
 
                             {{-- Kolom JAM --}}
                             @foreach ($timeSlots as $rowIndex => $slot)
@@ -172,16 +172,19 @@
 
                                 <div class="relative border-l border-gray-300 {{ $dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white' }}"
                                     style="grid-column: {{ $dayIndex + 2 }};
-                                           display: grid;
-                                           grid-template-rows: subgrid;
-                                           grid-row: 1 / span {{ $rowCount }};
-                                           grid-template-columns: repeat({{ $totalSubCols }}, 1fr);"> {{-- PERUBAHAN 3: Terapkan sub-kolom --}}
+                                            display: grid;
+                                            grid-template-rows: subgrid;
+                                            grid-row: 1 / span {{ $rowCount }};
+                                            grid-template-columns: repeat({{ $totalSubCols }}, 1fr);">
+                                    {{-- PERUBAHAN 3: Terapkan sub-kolom --}}
 
                                     {{-- Garis background --}}
                                     @foreach ($timeSlots as $r)
                                         {{-- PERUBAHAN 4: Loop untuk garis-garis sub-kolom --}}
                                         @for ($i = 0; $i < $totalSubCols; $i++)
-                                            <div class="border-b border-gray-100 {{ $i < $totalSubCols - 1 ? 'border-r' : '' }}"></div>
+                                            <div
+                                                class="border-b border-gray-100 {{ $i < $totalSubCols - 1 ? 'border-r' : '' }}">
+                                            </div>
                                         @endfor
                                     @endforeach
 
@@ -195,7 +198,9 @@
                                             $supIndex = array_search($ev['supervisor_name'], $supervisors);
 
                                             // Safety check jika supervisor tidak ditemukan
-                                            if ($supIndex === false) continue;
+                                            if ($supIndex === false) {
+                                                continue;
+                                            }
 
                                             // $supervisorSubCols telah dihitung di (PERUBAHAN 2) di atas
 
@@ -223,18 +228,23 @@
                                                 class="group cursor-pointer">
 
                                                 @if (auth()->user()->role_id == 3)
-                                                    <div
+                                                    {{-- LIHAT PERUBAHAN DI BAWAH: Ditambahkan class="h-full" --}}
+                                                    <div class="h-full"
                                                         onclick="window.location.href='{{ route('schedule.edit', ['dateKey' => urlencode($d['formatted']), 'supervisor' => urlencode($ev['supervisor_name']), 'start' => urlencode($ev['start'])]) }}'">
                                                     @else
-                                                        <div>
+                                                        {{-- LIHAT PERUBAHAN DI BAWAH: Ditambahkan class="h-full" --}}
+                                                        <div class="h-full">
                                                 @endif
 
                                                 <div data-export-card="true"
                                                     class="h-full p-2 border border-blue-200 rounded-lg bg-blue-50 shadow-sm overflow-hidden relative transition hover:shadow-lg hover:bg-blue-100">
-
                                                     <div data-export-truncate="true"
                                                         class="text-blue-700 font-semibold mb-1 text-xs truncate">
                                                         {{ $ev['supervisor_name'] }}
+                                                        <span class="font-medium text-blue-600">
+                                                            ({{ \Carbon\Carbon::parse($ev['start'])->format('H.i') }} -
+                                                            {{ \Carbon\Carbon::parse($ev['end'])->format('H.i') }})
+                                                        </span>
                                                     </div>
 
                                                     {{-- Display location --}}
@@ -252,15 +262,13 @@
                                                                 class="font-medium">{{ $w['jobdesc_name'] }}</span>
                                                         </div>
                                                     @endforeach
-
                                                     @if (auth()->user()->role_id == 3)
                                                         <div
                                                             class="absolute inset-0 flex items-center justify-center bg-blue-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all pointer-events-none">
                                                             <span
                                                                 class="opacity-0 group-hover:opacity-100 text-blue-700 font-bold text-sm flex items-center gap-1 transition-opacity bg-white px-3 py-1 rounded-full shadow-lg">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
-                                                                    fill="none" viewBox="0 0 24 24"
-                                                                    stroke="currentColor">
+                                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                                         stroke-width="2"
                                                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.586-9.414a2 2 0 112.828 2.828L11 15l-4 1 1-4 8.414-8.414z" />
@@ -271,21 +279,27 @@
                                                     @endif
                                                 </div>
                                             </div>
-                                </div>
-                            @endauth
+                                    </div>
+                                @endauth
+                            @endforeach
+                        </div>
                         @endforeach
+                    </div>
+
                 </div>
-            @endforeach
-        </div>
+                {{-- AKHIR DARI LOGIKA GRID dashboard.blade.php --}}
 
-        </div>
-        {{-- AKHIR DARI LOGIKA GRID dashboard.blade.php --}}
+            </div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden">
 
-        {{-- START: Worker Summary Card --}}
-        <div class="bg-white border border-gray-200 rounded-xl shadow-md p-6 mb-6">
+        {{-- Bagian Ringkasan Pekerja --}}
+        <div class="p-6">
             <h3 class="text-xl font-bold mb-4 text-gray-800">Ringkasan Pekerja</h3>
             <p class="text-sm text-gray-600 mb-4">
-                Total jumlah jadwal per pekerja untuk periode <span class="font-semibold">{{ \Carbon\Carbon::parse($startDate)->format('d-m-Y') }}</span> s/d <span class="font-semibold">{{ \Carbon\Carbon::parse($endDate)->format('d-m-Y') }}</span>.
+                Total jumlah jadwal per pekerja untuk periode <span
+                    class="font-semibold">{{ \Carbon\Carbon::parse($startDate)->format('d-m-Y') }}</span> s/d <span
+                    class="font-semibold">{{ \Carbon\Carbon::parse($endDate)->format('d-m-Y') }}</span>.
             </p>
 
             @if (isset($workerCounts) && count($workerCounts) > 0)
@@ -303,16 +317,17 @@
                 <p class="text-gray-500 italic">Tidak ada data pekerja untuk rentang tanggal ini.</p>
             @endif
         </div>
-        {{-- END: Worker Summary Card --}}
 
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        {{-- Bagian Kontrol (Tanggal & Export) --}}
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
             <form method="GET" action="{{ route('schedule.page') }}" class="flex items-center gap-3">
                 <div class="flex flex-col">
                     <label class="text-sm text-gray-700 mb-1">Tanggal Mulai (Rentang 7 Hari)</label>
                     <input type="date" name="startDate" value="{{ $startDate }}"
                         class="px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                         onchange="this.form.submit()" />
-                    <small class="text-xs text-gray-500 mt-1">Minggu: {{ \Carbon\Carbon::parse($startDate)->format('d-m-Y') }} s/d
+                    <small class="text-xs text-gray-500 mt-1">Minggu:
+                        {{ \Carbon\Carbon::parse($startDate)->format('d-m-Y') }} s/d
                         {{ \Carbon\Carbon::parse($endDate)->format('d-m-Y') }}
                     </small>
                 </div>
@@ -323,8 +338,9 @@
                 Export PDF
             </button>
         </div>
-        </div>
-        </main>
+    </div>
+
+    </main>
     </div>
 
     {{-- SCRIPT (Tidak ada perubahan) --}}
