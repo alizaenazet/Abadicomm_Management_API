@@ -39,7 +39,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('assign.store') }}" id="assignForm" class="space-y-6">
+    <form method="POST" action="{{ route('assign.store') }}" id="assignForm" class="space-y-6" onsubmit="return validateForm()">
       @csrf
 
       <div class="bg-white border-2 border-gray-200 rounded-xl p-6 space-y-4">
@@ -50,6 +50,7 @@
             <input
               type="date"
               name="date"
+              id="eventDate"
               value="{{ old('date') }}"
               class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50"
               required
@@ -58,11 +59,11 @@
 
           <label class="block">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-semibold text-gray-700">Tempat</span>
+              <span class="text-sm font-semibold text-gray-700">Tempat <span class="text-red-500">*</span></span>
               <button
                 type="button"
-                onclick="addLocation()"
-                class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md transition text-xs font-medium"
+                onclick="showLocationModal()"
+                class="flex items-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded-md transition text-xs font-medium"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -71,16 +72,19 @@
                 Add
               </button>
             </div>
-            <div id="locationsContainer" class="space-y-2">
-              <input
-                type="text"
-                name="locations[]"
-                value="{{ old('locations.0') }}"
-                placeholder="Enter location"
-                class="location-input w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50"
-                required
-              />
-            </div>
+            <select
+              name="location_id"
+              id="locationSelect"
+              class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50 font-medium"
+              required
+            >
+              <option value="">-- Select Location --</option>
+              @foreach ($locations as $location)
+              <option value="{{ $location->id }}" {{ old('location_id') == $location->id ? 'selected' : '' }}>
+                {{ $location->name }}
+              </option>
+              @endforeach
+            </select>
           </label>
         </div>
       </div>
@@ -93,6 +97,7 @@
             <input
               type="time"
               name="startTime"
+              id="startTime"
               value="{{ old('startTime') }}"
               min="07:00"
               max="21:00"
@@ -106,6 +111,7 @@
             <input
               type="time"
               name="endTime"
+              id="endTime"
               value="{{ old('endTime') }}"
               min="07:00"
               max="21:00"
@@ -200,6 +206,7 @@
       <div class="flex justify-center pt-4">
         <button
           type="submit"
+          id="submitBtn"
           class="px-8 py-3 font-bold rounded-lg transition shadow-md hover:shadow-lg text-lg bg-blue-500 hover:bg-blue-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-300"
         >
           Confirm Assignment
@@ -241,45 +248,86 @@
     </div>
   </div>
 
-  <script>
-    let assignmentCount = 1;
-    let locationCount = 1;
-
-    // Location functions
-    function addLocation() {
-      const container = document.getElementById('locationsContainer');
-      const newLocation = document.createElement('div');
-      newLocation.className = 'location-item flex gap-2';
-      newLocation.innerHTML = `
+  <!-- Location Modal -->
+  <div id="locationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-96 shadow-2xl">
+      <h3 class="text-xl font-bold text-gray-900 mb-4">Add New Location</h3>
+      <form id="locationForm" action="{{ route('assign') }}" method="POST">
+        @csrf
+        <input type="hidden" name="addLocation" value="1">
         <input
           type="text"
-          name="locations[]"
-          placeholder="Enter location"
-          class="location-input flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50"
-          required
+          id="newLocation"
+          name="locationName"
+          placeholder="Enter location name"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none mb-4"
         />
-        <button
-          type="button"
-          onclick="removeLocation(this)"
-          class="p-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      `;
-      container.appendChild(newLocation);
-      locationCount++;
-    }
+        <div class="flex gap-3 justify-end">
+          <button
+            type="button"
+            onclick="hideLocationModal()"
+            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition"
+          >
+            Add
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-    function removeLocation(button) {
-      const locationItems = document.querySelectorAll('.location-item, .location-input');
-      if (locationItems.length > 1) {
-        const item = button.closest('.location-item');
-        item.remove();
-        locationCount--;
+  <script>
+    let assignmentCount = 1;
+
+    // Form validation
+    function validateForm() {
+      const locationId = document.getElementById('locationSelect').value;
+      const date = document.getElementById('eventDate').value;
+      const startTime = document.getElementById('startTime').value;
+      const endTime = document.getElementById('endTime').value;
+
+      if (!locationId || locationId === '') {
+        alert('Please select a location!');
+        document.getElementById('locationSelect').focus();
+        return false;
       }
+
+      if (!date) {
+        alert('Please select a date!');
+        return false;
+      }
+
+      if (!startTime || !endTime) {
+        alert('Please select start and end time!');
+        return false;
+      }
+
+      const workerSelects = document.querySelectorAll('.worker-select');
+      let allWorkersSelected = true;
+      workerSelects.forEach(select => {
+        if (!select.value) {
+          allWorkersSelected = false;
+        }
+      });
+
+      if (!allWorkersSelected) {
+        alert('Please select a worker for all assignments!');
+        return false;
+      }
+
+      console.log('Form data being submitted:', {
+        location_id: locationId,
+        date: date,
+        startTime: startTime,
+        endTime: endTime
+      });
+
+      return true;
     }
 
     // Worker assignment functions
@@ -377,17 +425,35 @@
       document.getElementById('newJobdesc').value = '';
     }
 
-    // Close modal on Escape key
+    // Location modal functions
+    function showLocationModal() {
+      document.getElementById('locationModal').classList.remove('hidden');
+      document.getElementById('newLocation').focus();
+    }
+
+    function hideLocationModal() {
+      document.getElementById('locationModal').classList.add('hidden');
+      document.getElementById('newLocation').value = '';
+    }
+
+    // Close modals on Escape key
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
+        hideJobdescModal();
+        hideLocationModal();
+      }
+    });
+
+    // Close modals when clicking outside
+    document.getElementById('jobdescModal')?.addEventListener('click', function(e) {
+      if (e.target === this) {
         hideJobdescModal();
       }
     });
 
-    // Close modal when clicking outside
-    document.getElementById('jobdescModal')?.addEventListener('click', function(e) {
+    document.getElementById('locationModal')?.addEventListener('click', function(e) {
       if (e.target === this) {
-        hideJobdescModal();
+        hideLocationModal();
       }
     });
   </script>

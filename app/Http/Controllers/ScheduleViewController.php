@@ -5,27 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\Schedule;
 use App\Models\Worker;
 use App\Models\Jobdesc;
+use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class ScheduleViewController extends Controller
 {
-    /**
-     * Constructor - Apply auth middleware
-     */
     public function __construct()
     {
         $this->middleware('auth');
     }
 
-    /**
-     * Show the schedule view page with session data
-     */
     public function showSchedulePage(Request $request)
     {
-        // Get date range from request or use current week
         if ($request->has('startDate') && $request->startDate) {
             $startDate = $request->startDate;
             $endDate = Carbon::parse($startDate)->addDays(6)->format('Y-m-d');
@@ -37,20 +32,20 @@ class ScheduleViewController extends Controller
 
         $displayedDates = $this->generateDateRange($startDate, $endDate);
 
-        // Convert to timestamps
         $weekStart = Carbon::parse($startDate)->startOfDay()->timestamp;
         $weekEnd = Carbon::parse($endDate)->endOfDay()->timestamp;
 
-        // Fetch raw schedule data for current week
         $rawSchedule = DB::table('schedules as s')
             ->join('workers as sup', 's.superfisor_id', '=', 'sup.id')
             ->join('workers as w', 's.worker_id', '=', 'w.id')
             ->join('jobdescs as j', 's.jobdesc_id', '=', 'j.id')
+            ->join('locations as l', 's.location_id', '=', 'l.id')
             ->select(
                 's.id',
                 's.waktu_mulai',
                 's.waktu_selesai',
-                's.tempat',
+                'l.id as location_id',
+                'l.name as location_name',
                 'sup.id as supervisor_id',
                 'sup.name as supervisor_name',
                 'w.id as worker_id',
@@ -76,14 +71,13 @@ class ScheduleViewController extends Controller
                     'worker_name' => $item->worker_name,
                     'jobdesc_id' => (string)$item->jobdesc_id,
                     'jobdesc_name' => $item->jobdesc_name,
-                    'tempat' => $item->tempat,
+                    'location_id' => (string)$item->location_id,
+                    'location_name' => $item->location_name,
                 ];
             });
 
-        // Parse and group schedule
         $scheduleData = $this->parseSchedule($rawSchedule);
 
-        // Fetch workers and jobdescs for form
         $workers = DB::table('workers')->select('id', 'name', 'role_id')->get();
         $jobdescs = DB::table('jobdescs')->select('id', 'name')->get();
 
@@ -99,17 +93,12 @@ class ScheduleViewController extends Controller
         ]);
     }
 
-    /**
-     * Show edit schedule form
-     */
     public function edit($dateKey, $supervisor, $start)
     {
-        // Decode URL parameters
         $dateKey = urldecode($dateKey);
         $supervisor = urldecode($supervisor);
         $start = urldecode($start);
 
-        // Find schedules matching this group
         $startTimeParts = explode(':', $start);
         $dateParts = explode('-', $dateKey);
         $WIB_OFFSET = 7 * 60 * 60;
@@ -123,7 +112,7 @@ class ScheduleViewController extends Controller
             (int)$dateParts[0]
         ) - $WIB_OFFSET;
 
-        $schedules = Schedule::with(['worker', 'jobdesc', 'supervisor'])
+        $schedules = Schedule::with(['worker', 'jobdesc', 'supervisor', 'location'])
             ->where('superfisor_id', function($query) use ($supervisor) {
                 $query->select('id')
                     ->from('workers')
@@ -144,6 +133,7 @@ class ScheduleViewController extends Controller
         $workers = Worker::where('role_id', 2)->get(['id', 'name']);
         $jobdescs = Jobdesc::all(['id', 'name']);
         $supervisors = Worker::where('role_id', 1)->get(['id', 'name']);
+        $locations = Location::all(['id', 'name']);
 
         $assignments = $schedules->map(function($schedule) {
             return [
@@ -154,7 +144,8 @@ class ScheduleViewController extends Controller
                 'jobdescName' => $schedule->jobdesc->name,
                 'supervisorId' => $schedule->superfisor_id,
                 'supervisorName' => $schedule->supervisor->name,
-                'tempat' => $schedule->tempat,
+                'locationId' => $schedule->location_id,
+                'locationName' => $schedule->location->name,
             ];
         })->toArray();
 
@@ -166,19 +157,33 @@ class ScheduleViewController extends Controller
             'endTime',
             'workers',
             'jobdescs',
-            'supervisors'
+            'supervisors',
+            'locations'
         ));
     }
 
-    /**
-     * Update schedule
-     */
     public function update(Request $request)
     {
+        // Handle adding new location
+        if ($request->has('addLocation')) {
+            $request->validate([
+                'locationName' => 'required|string|max:255|unique:locations,name',
+            ]);
+
+            try {
+                Location::create(['name' => $request->locationName]);
+                return back()->with('success', 'Location added successfully!')->withInput();
+            } catch (\Exception $e) {
+                return back()->with('error', 'Failed to add location: ' . $e->getMessage())->withInput();
+            }
+        }
+
+        Log::info('Update Request Data:', $request->all());
+
         $request->validate([
             'scheduleIds' => 'required|array|min:1',
             'date' => 'required|date',
-            'location' => 'required|string',
+            'location_id' => 'required|integer|exists:locations,id',
             'startTime' => 'required',
             'endTime' => 'required',
             'assignments' => 'required|array|min:1',
@@ -187,18 +192,15 @@ class ScheduleViewController extends Controller
             'assignments.*.supervisorId' => 'required|exists:workers,id',
         ]);
 
-        // Check for duplicate workers
         $workerIds = collect($request->assignments)->pluck('workerId');
         if ($workerIds->count() !== $workerIds->unique()->count()) {
             return back()->with('error', 'Duplicate workers detected in assignments')->withInput();
         }
 
-        // Validate time
         if ($request->startTime >= $request->endTime) {
             return back()->with('error', 'End time must be after start time')->withInput();
         }
 
-        // Parse timestamps
         $dateArray = explode('-', $request->date);
         $startArray = explode(':', $request->startTime);
         $endArray = explode(':', $request->endTime);
@@ -214,43 +216,46 @@ class ScheduleViewController extends Controller
             (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
         ) - $WIB_OFFSET;
 
+        $locationId = (int) $request->location_id;
+
         DB::beginTransaction();
         try {
-            // Delete old schedules
             Schedule::whereIn('id', $request->scheduleIds)->delete();
 
-            // Create new schedules
             foreach ($request->assignments as $assignment) {
-                Schedule::create([
+                $scheduleData = [
                     'waktu_mulai' => $startTimestamp,
                     'waktu_selesai' => $endTimestamp,
-                    'worker_id' => $assignment['workerId'],
-                    'jobdesc_id' => $assignment['jobdescId'],
-                    'superfisor_id' => $assignment['supervisorId'],
-                    'tempat' => $request->location,
-                ]);
+                    'worker_id' => (int) $assignment['workerId'],
+                    'jobdesc_id' => (int) $assignment['jobdescId'],
+                    'superfisor_id' => (int) $assignment['supervisorId'],
+                    'location_id' => $locationId,
+                ];
+
+                Log::info('Updating schedule:', $scheduleData);
+                Schedule::create($scheduleData);
             }
 
             DB::commit();
             return redirect()->route('schedule.page')->with('success', 'Schedule updated successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Schedule update failed:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->with('error', 'Failed to update schedule: ' . $e->getMessage())->withInput();
         }
     }
 
-    /**
-     * Get all schedules (API endpoint for AJAX)
-     */
     public function index(Request $request)
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
-        $query = Schedule::with(['worker', 'jobdesc', 'supervisor'])
+        $query = Schedule::with(['worker', 'jobdesc', 'supervisor', 'location'])
             ->orderBy('waktu_mulai', 'asc');
 
-        // Filter by date range if provided
         if ($startDate && $endDate) {
             $weekStart = Carbon::parse($startDate)->startOfDay()->timestamp;
             $weekEnd = Carbon::parse($endDate)->endOfDay()->timestamp;
@@ -269,7 +274,8 @@ class ScheduleViewController extends Controller
                 'jobdesc_name' => $schedule->jobdesc->name ?? 'Unknown',
                 'supervisor_id' => (string)$schedule->superfisor_id,
                 'supervisor_name' => $schedule->supervisor->name ?? 'Unknown',
-                'tempat' => $schedule->tempat,
+                'location_id' => (string)$schedule->location_id,
+                'location_name' => $schedule->location->name ?? 'Unknown',
                 'date' => $start['date'],
                 'start_time' => $start['time'],
                 'end_time' => $end['time'],
@@ -290,7 +296,7 @@ class ScheduleViewController extends Controller
             'date' => 'required|date',
             'startTime' => 'required',
             'endTime' => 'required',
-            'location' => 'required|string',
+            'location_id' => 'required|integer|exists:locations,id',
         ]);
 
         if ($validator->fails()) {
@@ -300,44 +306,31 @@ class ScheduleViewController extends Controller
             ], 400);
         }
 
-        // Parse timestamps (WIB timezone)
         $dateArray = explode('-', $request->date);
         $startArray = explode(':', $request->startTime);
         $endArray = explode(':', $request->endTime);
-
         $WIB_OFFSET = 7 * 60 * 60;
 
         $startTimestamp = mktime(
-            (int)$startArray[0],
-            (int)$startArray[1],
-            0,
-            (int)$dateArray[1],
-            (int)$dateArray[2],
-            (int)$dateArray[0]
+            (int)$startArray[0], (int)$startArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
         ) - $WIB_OFFSET;
 
         $endTimestamp = mktime(
-            (int)$endArray[0],
-            (int)$endArray[1],
-            0,
-            (int)$dateArray[1],
-            (int)$dateArray[2],
-            (int)$dateArray[0]
+            (int)$endArray[0], (int)$endArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
         ) - $WIB_OFFSET;
 
-        // Check conflicts
         $conflicts = Schedule::where(function ($query) use ($request) {
             $query->where('worker_id', $request->workerId)
                 ->orWhere('superfisor_id', $request->supervisorId);
         })
-            ->where(function ($query) use ($startTimestamp, $endTimestamp) {
-                $query->where(function ($q) use ($startTimestamp, $endTimestamp) {
-                    $q->where('waktu_mulai', '<', $endTimestamp)
-                        ->where('waktu_selesai', '>', $startTimestamp);
-                });
-            })
-            ->with(['worker', 'supervisor'])
-            ->first();
+        ->where(function ($query) use ($startTimestamp, $endTimestamp) {
+            $query->where('waktu_mulai', '<', $endTimestamp)
+                ->where('waktu_selesai', '>', $startTimestamp);
+        })
+        ->with(['worker', 'supervisor'])
+        ->first();
 
         if ($conflicts) {
             $conflictPerson = $conflicts->worker_id == $request->workerId ? 'Worker' : 'Supervisor';
@@ -350,19 +343,27 @@ class ScheduleViewController extends Controller
             ], 409);
         }
 
-        $schedule = Schedule::create([
-            'waktu_mulai' => $startTimestamp,
-            'waktu_selesai' => $endTimestamp,
-            'worker_id' => $request->workerId,
-            'jobdesc_id' => $request->jobdescId,
-            'superfisor_id' => $request->supervisorId,
-            'tempat' => $request->location,
-        ]);
+        try {
+            $schedule = Schedule::create([
+                'waktu_mulai' => $startTimestamp,
+                'waktu_selesai' => $endTimestamp,
+                'worker_id' => (int) $request->workerId,
+                'jobdesc_id' => (int) $request->jobdescId,
+                'superfisor_id' => (int) $request->supervisorId,
+                'location_id' => (int) $request->location_id,
+            ]);
 
-        return response()->json([
-            'ok' => true,
-            'id' => $schedule->id,
-        ]);
+            return response()->json([
+                'ok' => true,
+                'id' => $schedule->id,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Schedule creation failed:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'ok' => false,
+                'error' => 'Failed to create schedule: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function bulkStore(Request $request)
@@ -375,7 +376,7 @@ class ScheduleViewController extends Controller
             'date' => 'required|date',
             'startTime' => 'required',
             'endTime' => 'required',
-            'location' => 'required|string',
+            'location_id' => 'required|integer|exists:locations,id',
         ]);
 
         if ($validator->fails()) {
@@ -385,31 +386,21 @@ class ScheduleViewController extends Controller
             ], 400);
         }
 
-        // Parse timestamps
         $dateArray = explode('-', $request->date);
         $startArray = explode(':', $request->startTime);
         $endArray = explode(':', $request->endTime);
         $WIB_OFFSET = 7 * 60 * 60;
 
         $startTimestamp = mktime(
-            (int)$startArray[0],
-            (int)$startArray[1],
-            0,
-            (int)$dateArray[1],
-            (int)$dateArray[2],
-            (int)$dateArray[0]
+            (int)$startArray[0], (int)$startArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
         ) - $WIB_OFFSET;
 
         $endTimestamp = mktime(
-            (int)$endArray[0],
-            (int)$endArray[1],
-            0,
-            (int)$dateArray[1],
-            (int)$dateArray[2],
-            (int)$dateArray[0]
+            (int)$endArray[0], (int)$endArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
         ) - $WIB_OFFSET;
 
-        // Check conflicts for ALL workers
         $workerIds = collect($request->schedules)->pluck('workerId')->toArray();
         $supervisorIds = collect($request->schedules)->pluck('supervisorId')->unique()->toArray();
 
@@ -417,12 +408,12 @@ class ScheduleViewController extends Controller
             $query->whereIn('worker_id', $workerIds)
                 ->orWhereIn('superfisor_id', $supervisorIds);
         })
-            ->where(function ($query) use ($startTimestamp, $endTimestamp) {
-                $query->where('waktu_mulai', '<', $endTimestamp)
-                    ->where('waktu_selesai', '>', $startTimestamp);
-            })
-            ->with(['worker', 'supervisor'])
-            ->first();
+        ->where(function ($query) use ($startTimestamp, $endTimestamp) {
+            $query->where('waktu_mulai', '<', $endTimestamp)
+                ->where('waktu_selesai', '>', $startTimestamp);
+        })
+        ->with(['worker', 'supervisor'])
+        ->first();
 
         if ($conflicts) {
             $conflictPerson = in_array($conflicts->worker_id, $workerIds) ? 'Worker' : 'Supervisor';
@@ -435,16 +426,18 @@ class ScheduleViewController extends Controller
             ], 409);
         }
 
+        $locationId = (int) $request->location_id;
+
         DB::beginTransaction();
         try {
             foreach ($request->schedules as $schedule) {
                 Schedule::create([
                     'waktu_mulai' => $startTimestamp,
                     'waktu_selesai' => $endTimestamp,
-                    'worker_id' => $schedule['workerId'],
-                    'jobdesc_id' => $schedule['jobdescId'],
-                    'superfisor_id' => $schedule['supervisorId'],
-                    'tempat' => $request->location,
+                    'worker_id' => (int) $schedule['workerId'],
+                    'jobdesc_id' => (int) $schedule['jobdescId'],
+                    'superfisor_id' => (int) $schedule['supervisorId'],
+                    'location_id' => $locationId,
                 ]);
             }
 
@@ -456,6 +449,7 @@ class ScheduleViewController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Bulk schedule creation failed:', ['error' => $e->getMessage()]);
             return response()->json([
                 'ok' => false,
                 'error' => $e->getMessage()
@@ -474,7 +468,7 @@ class ScheduleViewController extends Controller
             'date' => 'required|date',
             'startTime' => 'required',
             'endTime' => 'required',
-            'location' => 'required|string',
+            'location_id' => 'required|integer|exists:locations,id',
         ]);
 
         if ($validator->fails()) {
@@ -484,44 +478,35 @@ class ScheduleViewController extends Controller
             ], 400);
         }
 
-        // Parse timestamps
         $dateArray = explode('-', $request->date);
         $startArray = explode(':', $request->startTime);
         $endArray = explode(':', $request->endTime);
         $WIB_OFFSET = 7 * 60 * 60;
 
         $startTimestamp = mktime(
-            (int)$startArray[0],
-            (int)$startArray[1],
-            0,
-            (int)$dateArray[1],
-            (int)$dateArray[2],
-            (int)$dateArray[0]
+            (int)$startArray[0], (int)$startArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
         ) - $WIB_OFFSET;
 
         $endTimestamp = mktime(
-            (int)$endArray[0],
-            (int)$endArray[1],
-            0,
-            (int)$dateArray[1],
-            (int)$dateArray[2],
-            (int)$dateArray[0]
+            (int)$endArray[0], (int)$endArray[1], 0,
+            (int)$dateArray[1], (int)$dateArray[2], (int)$dateArray[0]
         ) - $WIB_OFFSET;
+
+        $locationId = (int) $request->location_id;
 
         DB::beginTransaction();
         try {
-            // Delete old schedules ONCE
             Schedule::whereIn('id', $request->scheduleIdsToDelete)->delete();
 
-            // Create new schedules for all workers
             foreach ($request->schedules as $schedule) {
                 Schedule::create([
                     'waktu_mulai' => $startTimestamp,
                     'waktu_selesai' => $endTimestamp,
-                    'worker_id' => $schedule['workerId'],
-                    'jobdesc_id' => $schedule['jobdescId'],
-                    'superfisor_id' => $schedule['supervisorId'],
-                    'tempat' => $request->location,
+                    'worker_id' => (int) $schedule['workerId'],
+                    'jobdesc_id' => (int) $schedule['jobdescId'],
+                    'superfisor_id' => (int) $schedule['supervisorId'],
+                    'location_id' => $locationId,
                 ]);
             }
 
@@ -533,6 +518,7 @@ class ScheduleViewController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Bulk schedule update failed:', ['error' => $e->getMessage()]);
             return response()->json([
                 'ok' => false,
                 'error' => $e->getMessage()
@@ -578,26 +564,6 @@ class ScheduleViewController extends Controller
         return $range;
     }
 
-    private function getCurrentWeekDates()
-    {
-        $today = Carbon::now();
-        $currentDay = $today->dayOfWeek;
-        $diffToMonday = $currentDay === 0 ? -6 : 1 - $currentDay;
-        $monday = $today->copy()->addDays($diffToMonday);
-
-        $dates = [];
-        for ($i = 0; $i < 7; $i++) {
-            $date = $monday->copy()->addDays($i);
-            $dates[] = [
-                'formatted' => $date->format('Y-m-d'),
-                'day' => $date->translatedFormat('l'),
-                'date' => $date->format('d M'),
-            ];
-        }
-
-        return $dates;
-    }
-
     private function getTimeSlots()
     {
         $slots = [];
@@ -629,6 +595,7 @@ class ScheduleViewController extends Controller
                     'start' => $item['start_time'],
                     'end' => $item['end_time'],
                     'scheduleIds' => [],
+                    'location_name' => $item['location_name'],
                 ];
             }
 
@@ -637,7 +604,6 @@ class ScheduleViewController extends Controller
                 'worker_id' => $item['worker_id'],
                 'jobdesc_name' => $item['jobdesc_name'],
                 'jobdesc_id' => $item['jobdesc_id'],
-                'tempat' => $item['tempat'],
             ];
 
             $grouped[$key]['scheduleIds'][] = $item['id'];
@@ -673,7 +639,6 @@ class ScheduleViewController extends Controller
             ]);
         }
 
-        // Handle overlaps per supervisor
         foreach ($scheduleMap as $dateKey => $events) {
             $supervisorGroups = [];
 
@@ -725,7 +690,6 @@ class ScheduleViewController extends Controller
             }
         }
 
-        // Build supervisor map
         $supervisorMap = [];
         foreach ($scheduleMap as $date => $events) {
             $supervisors = array_unique(array_map(function ($e) {
