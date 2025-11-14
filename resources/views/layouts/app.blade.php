@@ -9,7 +9,7 @@
   <header class="bg-white shadow-sm border-b-2 border-blue-600">
     <div class="mx-auto px-6 py-4 flex justify-between items-center">
       <div class="flex items-center gap-3">
-        <img src="{{ asset('images/logo_small.png') }}" alt="ABADI Comm Logo" class="w-10 h-10 object-contain" />
+        <img src="{{ asset('images/logo_small.svg') }}" alt="ABADI Comm Logo" class="w-10 h-10 object-contain" />
         <h1 class="text-2xl font-bold text-blue-600">ABADI Comm</h1>
       </div>
 
