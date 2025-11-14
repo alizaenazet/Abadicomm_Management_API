@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="min-h-screen bg-gray-100 text-gray-900 font-sans">
-        <!-- Loading Overlay -->
+        {{-- Loading Overlay --}}
         <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white p-6 rounded-xl shadow-2xl">
                 <svg class="animate-spin h-10 w-10 text-blue-600 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg"
@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        <!-- Alert Modal -->
+        {{-- Alert Modal --}}
         <div id="alertModal"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden transition-opacity duration-300">
             <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full m-4 transform transition-all duration-300">
@@ -30,9 +30,7 @@
             </div>
         </div>
 
-        <!-- Main Content -->
         <main class="p-8 space-y-6">
-            <!-- Header -->
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-3xl font-bold mb-2 text-gray-900">Weekly Schedule</h2>
@@ -40,10 +38,11 @@
                 </div>
             </div>
 
-            <!-- Schedule Container -->
             <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition">
-                <!-- Scroll Container -->
-                <div id="scrollContainer" class="overflow-auto max-h-[80vh]">
+
+                <div id="scrollContainer" class="overflow-x-auto overflow-y-auto max-h-[80vh]">
+
+                    {{-- LOGIKA GRID DIAMBIL DARI dashboard.blade.php --}}
                     @php
                         $dayWidths = [];
                         foreach ($displayedDates as $d) {
@@ -61,24 +60,26 @@
                             }
 
                             $totalCols = array_sum($supervisorSubCols) ?: 1;
-                            $dayWidths[] = "minmax({$totalCols}50px, {$totalCols}fr)";
+                            // Menggunakan kalkulasi minmax dari dashboard.blade.php
+                            $dayWidths[] = 'minmax(' . $totalCols * 150 . "px, {$totalCols}fr)";
                         }
 
                         $TIME_SLOT_HEIGHT = 60;
                     @endphp
 
-                    <!-- Schedule Grid -->
                     <div id="scheduleGrid" class="grid"
-                        style="grid-template-columns: 120px {{ implode(' ', $dayWidths) }}; background-color: #ffffff; min-width: max-content;">
+                        style="grid-template-columns: 120px {{ implode(' ', $dayWidths) }}; min-width: max-content;">
 
-                        {{-- HEADER ROW 1: Jam (spans 2 rows) --}}
+                        {{-- HEADER (2 Rows, Sticky) --}}
+
+                        {{-- Row 1: Time Label (Spans 2 rows) --}}
                         <div data-export-sticky="true"
                             class="sticky top-0 left-0 px-6 py-4 text-left text-sm font-semibold text-gray-700 bg-gray-50 border-b border-r border-gray-200 z-30 flex items-center"
                             style="grid-row: span 2 / span 2;">
                             Jam
                         </div>
 
-                        {{-- HEADER ROW 1: Dates --}}
+                        {{-- Row 1: Dates --}}
                         @foreach ($displayedDates as $d)
                             <div data-export-sticky="true"
                                 class="sticky top-0 px-6 py-4 text-center text-sm font-semibold text-gray-700 bg-gray-100 border-b border-gray-200 z-20">
@@ -86,7 +87,7 @@
                             </div>
                         @endforeach
 
-                        {{-- HEADER ROW 2: Supervisors --}}
+                        {{-- Row 2: Supervisors (Nested Grid) --}}
                         @foreach ($displayedDates as $dayIndex => $d)
                             @php
                                 $events = $scheduleMap[$d['formatted']] ?? [];
@@ -119,135 +120,181 @@
                                             </div>
                                         @endforeach
                                     @else
-                                        <div class="px-3 py-2 text-xs italic text-gray-400 text-center">-</div>
+                                        <div class="px-3 py-2 text-xs italic text-gray-400 text-center">
+                                            -
+                                        </div>
                                     @endif
                                 </div>
                             </div>
                         @endforeach
 
-                        {{-- BODY: Time column --}}
-                        <div data-export-sticky="true" class="col-start-1 sticky left-0 z-10"
-                            style="display: grid; grid-template-rows: repeat({{ count($timeSlots) }}, {{ $TIME_SLOT_HEIGHT }}px); grid-row-start: 3;">
-                            @foreach ($timeSlots as $slot)
-                                <div class="px-4 py-2 text-sm font-medium text-gray-900 border-r border-b border-gray-100 bg-gray-50 box-border"
-                                    style="height: {{ $TIME_SLOT_HEIGHT }}px;">
+                        {{-- BODY GRID (dari dashboard.blade.php) --}}
+                        @php
+                            $rowCount = count($timeSlots);
+                        @endphp
+
+                        {{-- Grid utama (jam + semua hari) --}}
+
+                        {{-- PERUBAHAN 1: Menggunakan $dayWidths agar kolom body sinkron dengan header --}}
+                        <div class="col-span-full"
+                            style="grid-column: 1 / -1; display: grid;
+                                   grid-template-columns: 120px {{ implode(' ', $dayWidths) }};
+                                   grid-template-rows: repeat({{ $rowCount }}, minmax({{ $TIME_SLOT_HEIGHT }}px, auto));">
+
+                            {{-- Kolom JAM --}}
+                            @foreach ($timeSlots as $rowIndex => $slot)
+                                <div data-export-sticky="true"
+                                    class="sticky left-0 z-10 bg-gray-50 border-b border-r border-gray-200 flex items-center justify-center text-sm font-semibold text-gray-700"
+                                    style="grid-row: {{ $rowIndex + 1 }};">
                                     {{ $slot }}
                                 </div>
                             @endforeach
-                        </div>
 
-                        {{-- BODY: Day columns --}}
-                        @foreach ($displayedDates as $dayIndex => $d)
-                            @php
-                                $events = $scheduleMap[$d['formatted']] ?? [];
-                                $supervisors = $supervisorMap[$d['formatted']] ?? [];
+                            {{-- Kolom JADWAL PER HARI --}}
+                            @foreach ($displayedDates as $dayIndex => $d)
+                                @php
+                                    $events = $scheduleMap[$d['formatted']] ?? [];
+                                    $supervisors = $supervisorMap[$d['formatted']] ?? [];
 
-                                $supervisorSubCols = [];
-                                foreach ($supervisors as $sup) {
-                                    $supEvents = array_filter($events, fn($e) => $e['supervisor_name'] === $sup);
-                                    $maxCols = 1;
-                                    foreach ($supEvents as $e) {
-                                        $maxCols = max($maxCols, $e['totalSubColumns'] ?? 1);
+                                    // PERUBAHAN 2: Menambahkan kalkulasi sub-kolom (copy dari header)
+                                    // Variabel $supervisorSubCols ini akan dipakai di bawah untuk kalkulasi $colStart
+                                    $supervisorSubCols = [];
+                                    foreach ($supervisors as $sup) {
+                                        $supEvents = array_filter($events, fn($e) => $e['supervisor_name'] === $sup);
+                                        $maxCols = 1;
+                                        foreach ($supEvents as $e) {
+                                            $maxCols = max($maxCols, $e['totalSubColumns'] ?? 1);
+                                        }
+                                        $supervisorSubCols[$sup] = $maxCols;
                                     }
-                                    $supervisorSubCols[$sup] = $maxCols;
-                                }
+                                    $totalSubCols = array_sum($supervisorSubCols) ?: 1;
+                                @endphp
 
-                                $totalSubCols = array_sum($supervisorSubCols) ?: 1;
-                                $bgClass = $dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white';
-                            @endphp
+                                <div class="relative border-l border-gray-300 {{ $dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white' }}"
+                                    style="grid-column: {{ $dayIndex + 2 }};
+                                           display: grid;
+                                           grid-template-rows: subgrid;
+                                           grid-row: 1 / span {{ $rowCount }};
+                                           grid-template-columns: repeat({{ $totalSubCols }}, 1fr);"> {{-- PERUBAHAN 3: Terapkan sub-kolom --}}
 
-                            <div class="relative grid {{ $bgClass }}"
-                                style="grid-template-rows: repeat({{ count($timeSlots) }}, {{ $TIME_SLOT_HEIGHT }}px); grid-template-columns: repeat({{ $totalSubCols }}, minmax(150px, 1fr)); grid-column-start: {{ $dayIndex + 2 }}; grid-row-start: 3; border-left: 1px solid #e5e7eb;">
+                                    {{-- Garis background --}}
+                                    @foreach ($timeSlots as $r)
+                                        {{-- PERUBAHAN 4: Loop untuk garis-garis sub-kolom --}}
+                                        @for ($i = 0; $i < $totalSubCols; $i++)
+                                            <div class="border-b border-gray-100 {{ $i < $totalSubCols - 1 ? 'border-r' : '' }}"></div>
+                                        @endfor
+                                    @endforeach
 
-                                {{-- Background cells --}}
-                                @for ($i = 0; $i < count($timeSlots) * $totalSubCols; $i++)
-                                    @php
-                                        $row = floor($i / $totalSubCols) + 1;
-                                        $col = ($i % $totalSubCols) + 1;
-                                        $borderClass = $col < $totalSubCols ? 'border-r border-gray-100' : '';
-                                    @endphp
-                                    <div style="grid-row: {{ $row }}; grid-column: {{ $col }}; height: {{ $TIME_SLOT_HEIGHT }}px;"
-                                        class="border-b border-gray-100 box-border {{ $borderClass }}"></div>
-                                @endfor
+                                    {{-- Event --}}
+                                    @foreach ($events as $ev)
+                                        @php
+                                            $rowStart = $ev['gridRowStart'];
+                                            $rowSpan = $ev['gridRowSpan'];
 
-                                {{-- Event cards --}}
-                                @foreach ($events as $ev)
-                                    @php
-                                        $supIndex = array_search($ev['supervisor_name'], $supervisors);
-                                        if ($supIndex === false) {
-                                            continue;
-                                        }
+                                            // --- PERUBAHAN 5 (KRUSIAL): Menghitung posisi kolom (dari logika React) ---
+                                            $supIndex = array_search($ev['supervisor_name'], $supervisors);
 
-                                        $colOffset = 0;
-                                        for ($i = 0; $i < $supIndex; $i++) {
-                                            $colOffset += $supervisorSubCols[$supervisors[$i]];
-                                        }
-                                        $colStart = $colOffset + $ev['subColumn'] + 1;
-                                    @endphp
+                                            // Safety check jika supervisor tidak ditemukan
+                                            if ($supIndex === false) continue;
 
-                                    <div style="grid-row-start: {{ $ev['gridRowStart'] }}; grid-row-end: span {{ $ev['gridRowSpan'] }}; grid-column-start: {{ $colStart }}; padding: 0.25rem; z-index: 5; position: relative;"
-                                        class="group cursor-pointer"
-                                        onclick="window.location.href='{{ route('schedule.edit', ['dateKey' => urlencode($d['formatted']), 'supervisor' => urlencode($ev['supervisor_name']), 'start' => urlencode($ev['start'])]) }}'">
-                                        <div data-export-card="true"
-                                            class="flex-1 min-w-0 p-2 border border-blue-200 rounded-lg bg-blue-50 shadow-sm overflow-hidden h-full relative transition hover:shadow-lg hover:bg-blue-100">
-                                            <div data-export-truncate="true"
-                                                class="text-blue-700 font-semibold mb-1 text-xs truncate">
-                                                {{ $ev['supervisor_name'] }}
-                                            </div>
-                                            @foreach ($ev['workers'] as $w)
-                                                <div data-export-truncate="true"
-                                                    class="text-xs text-gray-700 leading-tight truncate">
-                                                    • {{ $w['worker_name'] }} — <span
-                                                        class="font-medium">{{ $w['jobdesc_name'] }}</span>
+                                            // $supervisorSubCols telah dihitung di (PERUBAHAN 2) di atas
+
+                                            $colOffset = 0;
+                                            for ($i = 0; $i < $supIndex; $i++) {
+                                                // Akumulasi total kolom dari supervisor SEBELUMNYA
+                                                $colOffset += $supervisorSubCols[$supervisors[$i]] ?? 1;
+                                            }
+
+                                            // ev['subColumn'] adalah index 0-based DARI controller (hasil logika overlap)
+                                            $evSubCol = $ev['subColumn'] ?? 0;
+
+                                            // Kolom grid 1-based = offset + index internal + 1
+                                            $colStart = $colOffset + $evSubCol + 1;
+
+                                            // Berdasarkan kode React, span kolom selalu 1
+                                            $colSpan = 1;
+                                        @endphp
+
+                                        @auth
+                                            {{-- PERUBAHAN 6: Terapkan $colStart dan $colSpan --}}
+                                            <div style="grid-row-start: {{ $rowStart }}; grid-row-end: span {{ $rowSpan }};
+                                                        grid-column-start: {{ $colStart }}; grid-column-end: span {{ $colSpan }};
+                                                        padding: 0.25rem; z-index: 5; position: relative;"
+                                                class="group cursor-pointer">
+
+                                                @if (auth()->user()->role_id == 3)
+                                                    <div
+                                                        onclick="window.location.href='{{ route('schedule.edit', ['dateKey' => urlencode($d['formatted']), 'supervisor' => urlencode($ev['supervisor_name']), 'start' => urlencode($ev['start'])]) }}'">
+                                                    @else
+                                                        <div>
+                                                @endif
+
+                                                <div data-export-card="true"
+                                                    class="h-full p-2 border border-blue-200 rounded-lg bg-blue-50 shadow-sm overflow-hidden relative transition hover:shadow-lg hover:bg-blue-100">
+
+                                                    <div data-export-truncate="true"
+                                                        class="text-blue-700 font-semibold mb-1 text-xs truncate">
+                                                        {{ $ev['supervisor_name'] }}
+                                                    </div>
+
+                                                    @foreach ($ev['workers'] as $w)
+                                                        <div data-export-truncate="true"
+                                                            class="text-xs text-gray-700 leading-tight truncate">
+                                                            • {{ $w['worker_name'] }} – <span
+                                                                class="font-medium">{{ $w['jobdesc_name'] }}</span>
+                                                        </div>
+                                                    @endforeach
+
+                                                    @if (auth()->user()->role_id == 3)
+                                                        <div
+                                                            class="absolute inset-0 flex items-center justify-center bg-blue-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all pointer-events-none">
+                                                            <span
+                                                                class="opacity-0 group-hover:opacity-100 text-blue-700 font-bold text-sm flex items-center gap-1 transition-opacity bg-white px-3 py-1 rounded-full shadow-lg">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                                                    fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.586-9.414a2 2 0 112.828 2.828L11 15l-4 1 1-4 8.414-8.414z" />
+                                                                </svg>
+                                                                Click to Edit
+                                                            </span>
+                                                        </div>
+                                                    @endif
                                                 </div>
-                                            @endforeach
-                                            <div
-                                                class="absolute inset-0 flex items-center justify-center bg-blue-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all pointer-events-none">
-                                                <span
-                                                    class="opacity-0 group-hover:opacity-100 text-blue-700 font-bold text-sm flex items-center gap-1 transition-opacity bg-white px-3 py-1 rounded-full shadow-lg">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.586-9.414a2 2 0 112.828 2.828L11 15l-4 1 1-4 8.414-8.414z" />
-                                                    </svg>
-                                                    Click to Edit
-                                                </span>
                                             </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
+                                </div>
+                            @endauth
                         @endforeach
-
-                    </div>
                 </div>
+            @endforeach
+        </div>
 
-                <!-- Filter + Export -->
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                    <form method="GET" action="{{ route('schedule.page') }}" class="flex items-center gap-3">
-                        <div class="flex flex-col">
-                            <label class="text-sm text-gray-700 mb-1">Tanggal Mulai (Rentang 7 Hari)</label>
-                            <input
-                                type="date"
-                                name="startDate"
-                                value="{{ $startDate }}"
-                                class="px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                onchange="this.form.submit()"
-                            />
-                            <small class="text-xs text-gray-500 mt-1">Minggu: {{ $startDate }} s/d {{ $endDate }}</small>
-                        </div>
-                    </form>
+        </div>
+        {{-- AKHIR DARI LOGIKA GRID dashboard.blade.php --}}
 
-                    <button id="exportBtn" onclick="handleExport()"
-                        class="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
-                        Export PDF
-                    </button>
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <form method="GET" action="{{ route('schedule.page') }}" class="flex items-center gap-3">
+                <div class="flex flex-col">
+                    <label class="text-sm text-gray-700 mb-1">Tanggal Mulai (Rentang 7 Hari)</label>
+                    <input type="date" name="startDate" value="{{ $startDate }}"
+                        class="px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        onchange="this.form.submit()" />
+                    <small class="text-xs text-gray-500 mt-1">Minggu: {{ $startDate }} s/d
+                        {{ $endDate }}</small>
                 </div>
-            </div>
+            </form>
+
+            <button id="exportBtn" onclick="handleExport()"
+                class="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Export PDF
+            </button>
+        </div>
+        </div>
         </main>
     </div>
 
+    {{-- SCRIPT (Tidak ada perubahan) --}}
     <script>
         // Initial data from server
         let scheduleMap = @json($scheduleMap);
@@ -393,7 +440,6 @@
         }
     </script>
 
-    <!-- jsPDF & html2canvas for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 @endsection
