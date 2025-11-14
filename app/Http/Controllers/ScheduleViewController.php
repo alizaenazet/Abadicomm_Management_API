@@ -80,6 +80,17 @@ class ScheduleViewController extends Controller
 
         $workers = DB::table('workers')->select('id', 'name', 'role_id')->get();
         $jobdescs = DB::table('jobdescs')->select('id', 'name')->get();
+        $workerCounts = Schedule::join('workers', 'schedules.worker_id', '=', 'workers.id')
+            ->whereBetween('schedules.waktu_mulai', [$weekStart, $weekEnd])
+            ->select('workers.name', DB::raw('count(workers.name) as count'))
+            ->groupBy('workers.name')
+            ->orderBy('count', 'desc')
+            ->orderBy('workers.name', 'asc')
+            ->get()
+            ->map(function($item) {
+                return ['name' => $item->name, 'count' => $item->count];
+            })
+            ->all();
 
         return view('schedule', [
             'displayedDates' => $displayedDates,
@@ -90,6 +101,7 @@ class ScheduleViewController extends Controller
             'jobdescs' => $jobdescs,
             'startDate' => $startDate,
             'endDate' => $endDate,
+            'workerCounts' => $workerCounts,
         ]);
     }
 
