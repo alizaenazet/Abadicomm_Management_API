@@ -108,10 +108,16 @@
                                 Dewan: {{ $lists->first()->supervisor->name ?? '-' }}
                             </div>
 
+                            {{-- Lokasi --}}
+                            <div class="text-sm font-semibold text-gray-600">
+                                {{ $lists->first()->location->name ?? '-' }}
+                            </div>
+
                             {{-- Hari & tanggal --}}
                             <div class="text-sm font-semibold text-gray-600 mb-3">
                                 {{ $lists->first()->hari }} — {{ $lists->first()->tanggal }}
                             </div>
+
 
                             {{-- List pekerjaan (KESAMPING) --}}
                             <div class="flex flex-wrap gap-2">

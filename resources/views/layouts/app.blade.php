@@ -34,8 +34,8 @@
       <a href="/dashboard" class="text-sm font-medium {{ request()->is('dashboard') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Dashboard</a>
       @if (auth()->user()->role_id == 3)
         <a href="/assign" class="text-sm font-medium {{ request()->is('assign') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Assign Worker</a>
-        <a href="/jobdesc" class="text-sm font-medium {{ request()->is('jobdesc') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">manage jobdesc</a>
-        <a href="/location" class="text-sm font-medium {{ request()->is('location') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">manage location</a>
+        <a href="/jobdesc" class="text-sm font-medium {{ request()->is('jobdesc') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Manage Jobdesc</a>
+        <a href="/location" class="text-sm font-medium {{ request()->is('location') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Manage Location</a>
       @endif
       <a href="/schedule" class="text-sm font-medium {{ request()->is('schedule*') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">Schedule</a>
     </div>
