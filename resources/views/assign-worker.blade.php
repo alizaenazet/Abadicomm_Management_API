@@ -57,15 +57,30 @@
           </label>
 
           <label class="block">
-            <span class="text-sm font-semibold text-gray-700 mb-2 block">Tempat</span>
-            <input
-              type="text"
-              name="location"
-              value="{{ old('location') }}"
-              placeholder="Enter location"
-              class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50"
-              required
-            />
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-gray-700">Tempat</span>
+              <button
+                type="button"
+                onclick="addLocation()"
+                class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md transition text-xs font-medium"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add
+              </button>
+            </div>
+            <div id="locationsContainer" class="space-y-2">
+              <input
+                type="text"
+                name="locations[]"
+                value="{{ old('locations.0') }}"
+                placeholder="Enter location"
+                class="location-input w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50"
+                required
+              />
+            </div>
           </label>
         </div>
       </div>
@@ -228,7 +243,46 @@
 
   <script>
     let assignmentCount = 1;
+    let locationCount = 1;
 
+    // Location functions
+    function addLocation() {
+      const container = document.getElementById('locationsContainer');
+      const newLocation = document.createElement('div');
+      newLocation.className = 'location-item flex gap-2';
+      newLocation.innerHTML = `
+        <input
+          type="text"
+          name="locations[]"
+          placeholder="Enter location"
+          class="location-input flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50"
+          required
+        />
+        <button
+          type="button"
+          onclick="removeLocation(this)"
+          class="p-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      `;
+      container.appendChild(newLocation);
+      locationCount++;
+    }
+
+    function removeLocation(button) {
+      const locationItems = document.querySelectorAll('.location-item, .location-input');
+      if (locationItems.length > 1) {
+        const item = button.closest('.location-item');
+        item.remove();
+        locationCount--;
+      }
+    }
+
+    // Worker assignment functions
     function addAssignment() {
       const container = document.getElementById('assignmentsContainer');
       const newAssignment = document.createElement('div');
@@ -312,6 +366,7 @@
       });
     }
 
+    // Jobdesc modal functions
     function showJobdescModal() {
       document.getElementById('jobdescModal').classList.remove('hidden');
       document.getElementById('newJobdesc').focus();

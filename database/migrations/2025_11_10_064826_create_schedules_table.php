@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('worker_id')->constrained('workers')->onDelete('cascade');
             $table->foreignId('jobdesc_id')->constrained('jobdescs')->onDelete('cascade');
             $table->foreignId('superfisor_id')->constrained('workers')->onDelete('cascade');
-            $table->string('tempat');
+            $table->foreignId('location_id')->constrained('locations')->onDelete('cascade');
             $table->timestamps();
         });
     }
