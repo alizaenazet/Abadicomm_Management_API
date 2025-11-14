@@ -72,15 +72,32 @@
           </label>
 
           <label class="block">
-            <span class="text-sm font-semibold text-gray-700 mb-2 block">Tempat</span>
-            <input
-              type="text"
-              name="location"
-              value="{{ old('location', $assignments[0]['tempat'] ?? '') }}"
-              placeholder="Enter location"
-              class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50"
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-gray-700">Tempat</span>
+              <button
+                type="button"
+                onclick="showLocationModal()"
+                class="flex items-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded-md transition text-xs font-medium"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add
+              </button>
+            </div>
+            <select
+              name="location_id"
+              class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition bg-blue-50 font-medium"
               required
-            />
+            >
+              <option value="">Select Location</option>
+              @foreach ($locations as $location)
+              <option value="{{ $location->id }}" {{ old('location_id', $assignments[0]['locationId'] ?? '') == $location->id ? 'selected' : '' }}>
+                {{ $location->name }}
+              </option>
+              @endforeach
+            </select>
           </label>
         </div>
       </div>
@@ -219,6 +236,56 @@
     </form>
   </div>
 
+  <!-- Location Modal -->
+  <div id="locationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-96 shadow-2xl">
+      <h3 class="text-xl font-bold text-gray-900 mb-4">Add New Location</h3>
+      <form id="locationForm" action="{{ route('schedule.update') }}" method="POST">
+        @csrf
+        <input type="hidden" name="addLocation" value="1">
+
+        {{-- Preserve schedule IDs --}}
+        @foreach ($schedules as $schedule)
+        <input type="hidden" name="scheduleIds[]" value="{{ $schedule->id }}">
+        @endforeach
+
+        {{-- Preserve other form data --}}
+        <input type="hidden" name="date" value="{{ old('date', $dateKey) }}">
+        <input type="hidden" name="startTime" value="{{ old('startTime', $startTime->format('H:i')) }}">
+        <input type="hidden" name="endTime" value="{{ old('endTime', $endTime->format('H:i')) }}">
+
+        @foreach ($assignments as $index => $assignment)
+        <input type="hidden" name="assignments[{{ $index }}][workerId]" value="{{ $assignment['workerId'] }}">
+        <input type="hidden" name="assignments[{{ $index }}][jobdescId]" value="{{ $assignment['jobdescId'] }}">
+        <input type="hidden" name="assignments[{{ $index }}][supervisorId]" value="{{ $assignment['supervisorId'] }}">
+        @endforeach
+
+        <input
+          type="text"
+          id="newLocation"
+          name="locationName"
+          placeholder="Enter location name"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none mb-4"
+        />
+        <div class="flex gap-3 justify-end">
+          <button
+            type="button"
+            onclick="hideLocationModal()"
+            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition"
+          >
+            Add
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     let assignmentCount = {{ count($assignments) }};
 
@@ -304,6 +371,31 @@
         }
       });
     }
+
+    // Location modal functions
+    function showLocationModal() {
+      document.getElementById('locationModal').classList.remove('hidden');
+      document.getElementById('newLocation').focus();
+    }
+
+    function hideLocationModal() {
+      document.getElementById('locationModal').classList.add('hidden');
+      document.getElementById('newLocation').value = '';
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        hideLocationModal();
+      }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('locationModal')?.addEventListener('click', function(e) {
+      if (e.target === this) {
+        hideLocationModal();
+      }
+    });
   </script>
 </div>
 @endsection

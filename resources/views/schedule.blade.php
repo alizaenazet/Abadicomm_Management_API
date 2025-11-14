@@ -237,6 +237,14 @@
                                                         {{ $ev['supervisor_name'] }}
                                                     </div>
 
+                                                    {{-- Display location --}}
+                                                    @if (isset($ev['location_name']))
+                                                        <div data-export-truncate="true"
+                                                            class="text-xs text-gray-600 mb-1 truncate italic">
+                                                            📍 {{ $ev['location_name'] }}
+                                                        </div>
+                                                    @endif
+
                                                     @foreach ($ev['workers'] as $w)
                                                         <div data-export-truncate="true"
                                                             class="text-xs text-gray-700 leading-tight truncate">
