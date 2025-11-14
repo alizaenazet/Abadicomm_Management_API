@@ -114,9 +114,15 @@
                             </div>
 
                             {{-- Hari & tanggal --}}
-                            <div class="text-sm font-semibold text-gray-600 mb-3">
+                            <div class="text-sm font-semibold text-gray-600">
                                 {{ $lists->first()->hari }} — {{ $lists->first()->tanggal }}
                             </div>
+
+                            {{-- Waktu --}}
+                            <div class="text-sm font-semibold text-gray-600 mb-3">
+                                {{ $lists->first()->jam_mulai }} - {{ $lists->first()->jam_selesai ?? '-' }}
+                            </div>
+
 
 
                             {{-- List pekerjaan (KESAMPING) --}}

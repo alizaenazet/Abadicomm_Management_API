@@ -54,15 +54,27 @@ class DashboardController extends Controller
             ->orderBy('waktu_mulai')
             ->get()
             ->map(function ($sch) {
-                $date = Carbon::createFromTimestamp($sch->waktu_mulai);
-                $sch->tanggal = $date->format('Y-m-d');
-                $sch->hari    = $date->locale('id')->translatedFormat('l');
+
+                // Convert timestamp → Carbon
+                $start = Carbon::createFromTimestamp($sch->waktu_mulai);
+
+                // Kalau ada waktu_selesai
+                $end   = $sch->waktu_selesai
+                        ? Carbon::createFromTimestamp($sch->waktu_selesai)
+                        : null;
+
+                // Tanggal & hari
+                $sch->tanggal = $start->format('Y-m-d');
+                $sch->hari    = $start->locale('id')->translatedFormat('l');
+
+                // Jam mulai – jam selesai
+                $sch->jam_mulai  = $start->format('H:i');
+                $sch->jam_selesai = $end ? $end->format('H:i') : null;
+
                 return $sch;
             })
             ->groupBy('superfisor_id')
-            ->map(function ($group) {
-                return $group->groupBy('tanggal');
-            });
+            ->map(fn($g) => $g->groupBy('tanggal'));
 
 
         /*
