@@ -5,6 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ScheduleViewController;
 use App\Http\Controllers\AssignWorkerController;
+use App\Http\Controllers\JobdescController;
+use App\Http\Controllers\LocationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,11 +38,25 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+
     // Schedule Management
     Route::get('/schedule', [ScheduleViewController::class, 'showSchedulePage'])->name('schedule.page');
     Route::get('/schedule/edit/{dateKey}/{supervisor}/{start}', [ScheduleViewController::class, 'edit'])->name('schedule.edit');
     Route::post('/schedule/update', [ScheduleViewController::class, 'update'])->name('schedule.update');
 
+    // Worker Assignment
     Route::get('/assign', [AssignWorkerController::class, 'index'])->name('assign');
     Route::post('/assign', [AssignWorkerController::class, 'store'])->name('assign.store');
+
+    // Job Description Management
+    Route::get('/jobdesc', [JobdescController::class, 'index'])->name('jobdesc.index');
+    Route::post('/jobdesc', [JobdescController::class, 'store'])->name('jobdesc.store');
+    Route::put('/jobdesc/{id}', [JobdescController::class, 'update'])->name('jobdesc.update');
+    Route::delete('/jobdesc/{id}', [JobdescController::class, 'destroy'])->name('jobdesc.destroy');
+
+    // Location Management
+    Route::get('/location', [LocationController::class, 'index'])->name('location.index');
+    Route::post('/location', [LocationController::class, 'store'])->name('location.store');
+    Route::put('/location/{id}', [LocationController::class, 'update'])->name('location.update');
+    Route::delete('/location/{id}', [LocationController::class, 'destroy'])->name('location.destroy');
 });

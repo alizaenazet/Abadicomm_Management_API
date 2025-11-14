@@ -237,6 +237,14 @@
                                                         {{ $ev['supervisor_name'] }}
                                                     </div>
 
+                                                    {{-- Display location --}}
+                                                    @if (isset($ev['location_name']))
+                                                        <div data-export-truncate="true"
+                                                            class="text-xs text-gray-600 mb-1 truncate italic">
+                                                            📍 {{ $ev['location_name'] }}
+                                                        </div>
+                                                    @endif
+
                                                     @foreach ($ev['workers'] as $w)
                                                         <div data-export-truncate="true"
                                                             class="text-xs text-gray-700 leading-tight truncate">
@@ -273,6 +281,30 @@
         </div>
         {{-- AKHIR DARI LOGIKA GRID dashboard.blade.php --}}
 
+        {{-- START: Worker Summary Card --}}
+        <div class="bg-white border border-gray-200 rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Ringkasan Pekerja</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                Total jumlah jadwal per pekerja untuk periode <span class="font-semibold">{{ \Carbon\Carbon::parse($startDate)->format('d-m-Y') }}</span> s/d <span class="font-semibold">{{ \Carbon\Carbon::parse($endDate)->format('d-m-Y') }}</span>.
+            </p>
+
+            @if (isset($workerCounts) && count($workerCounts) > 0)
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                    @foreach ($workerCounts as $worker)
+                        <div class="py-2 flex justify-between items-center border-b border-gray-100">
+                            <span class="text-gray-700">{{ $worker['name'] }}</span>
+                            <span class="font-semibold text-blue-600 bg-blue-100 px-3 py-0.5 rounded-full text-sm">
+                                {{ $worker['count'] }} kali
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-gray-500 italic">Tidak ada data pekerja untuk rentang tanggal ini.</p>
+            @endif
+        </div>
+        {{-- END: Worker Summary Card --}}
+
         <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
             <form method="GET" action="{{ route('schedule.page') }}" class="flex items-center gap-3">
                 <div class="flex flex-col">
@@ -280,8 +312,9 @@
                     <input type="date" name="startDate" value="{{ $startDate }}"
                         class="px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                         onchange="this.form.submit()" />
-                    <small class="text-xs text-gray-500 mt-1">Minggu: {{ $startDate }} s/d
-                        {{ $endDate }}</small>
+                    <small class="text-xs text-gray-500 mt-1">Minggu: {{ \Carbon\Carbon::parse($startDate)->format('d-m-Y') }} s/d
+                        {{ \Carbon\Carbon::parse($endDate)->format('d-m-Y') }}
+                    </small>
                 </div>
             </form>
 
