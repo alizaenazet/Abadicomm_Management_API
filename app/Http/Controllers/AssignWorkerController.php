@@ -21,9 +21,25 @@ class AssignWorkerController extends Controller
 
     public function store(Request $request)
     {
+        // Handle adding new jobdesc
+        if ($request->has('addJobdesc')) {
+            $request->validate([
+                'jobdescName' => 'required|string|max:255|unique:jobdescs,name',
+            ]);
+
+            try {
+                Jobdesc::create(['name' => $request->jobdescName]);
+                return redirect()->route('assign')->with('success', 'Job description added successfully!');
+            } catch (\Exception $e) {
+                return back()->with('error', 'Failed to add job description: ' . $e->getMessage());
+            }
+        }
+
+        // Handle worker assignment
         $request->validate([
             'date' => 'required|date',
-            'location' => 'required|string',
+            'locations' => 'required|array|min:1',
+            'locations.*' => 'required|string|max:255',
             'startTime' => 'required',
             'endTime' => 'required',
             'assignments' => 'required|array|min:1',
@@ -31,6 +47,9 @@ class AssignWorkerController extends Controller
             'assignments.*.jobdescId' => 'required|exists:jobdescs,id',
             'assignments.*.supervisorId' => 'required|exists:workers,id',
         ]);
+
+        // Combine locations with ' || ' separator
+        $combinedLocation = implode(' || ', array_filter($request->locations));
 
         $workerIds = collect($request->assignments)->pluck('workerId');
         if ($workerIds->count() !== $workerIds->unique()->count()) {
@@ -87,7 +106,7 @@ class AssignWorkerController extends Controller
                     'worker_id' => $assignment['workerId'],
                     'jobdesc_id' => $assignment['jobdescId'],
                     'superfisor_id' => $assignment['supervisorId'],
-                    'tempat' => $request->location,
+                    'tempat' => $combinedLocation,
                 ]);
             }
 
