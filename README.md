@@ -53,7 +53,7 @@ The system uses **WIB (Western Indonesian Time, UTC+7)** for all time displays w
 
 - **PHP** >= 8.1
 - **Composer** >= 2.0
-- **MySQL** >= 5.7 or **MariaDB** >= 10.3
+- **MySQL** >= 5.7
 - **Laravel** 10.x
 - **Node.js** >= 16 (optional, for asset compilation)
 
