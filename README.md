@@ -54,8 +54,8 @@ The system uses **WIB (Western Indonesian Time, UTC+7)** for all time displays w
 - **PHP** >= 8.1
 - **Composer** >= 2.0
 - **MySQL** >= 5.7 
-- **Laravel** 10.x
-- **Node.js** >= 16 (optional, for asset compilation)
+- **Laravel** 10.49.1
+- **Node.js** >= v22.14.0
 
 ---
 
@@ -449,14 +449,6 @@ After seeding the database:
 | Password | password123 |
 | Role | Admin |
 
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -464,12 +456,6 @@ This project is licensed under the MIT License.
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
----
-
-## 📞 Support
-
-For support, please open an issue on GitHub or contact the development team.
 
 ---
 
