@@ -2,15 +2,15 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>ABADI Comm</title>
+  <title>AbadiComm</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50 font-sans">
   <header class="bg-white shadow-sm border-b-2 border-blue-600">
     <div class="mx-auto px-6 py-4 flex justify-between items-center">
       <div class="flex items-center gap-3">
-        <img src="{{ asset('images/logo_small.svg') }}" alt="ABADI Comm Logo" class="w-10 h-10 object-contain" />
-        <h1 class="text-2xl font-bold text-blue-600">ABADI Comm</h1>
+        <img src="{{ asset('images/logo_small.svg') }}" alt="AbadiComm Logo" class="w-10 h-10 object-contain" />
+        <h1 class="text-2xl font-bold text-blue-600">AbadiComm</h1>
       </div>
 
       @auth
@@ -47,7 +47,7 @@
   </main>
 
   <footer class="border-t bg-white text-center text-gray-500 text-sm py-4">
-    © {{ date('Y') }} ABADI Comm. All rights reserved.
+    © {{ date('Y') }} AbadiComm. All rights reserved.
   </footer>
 </body>
 </html>

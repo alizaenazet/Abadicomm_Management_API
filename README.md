@@ -1,4 +1,4 @@
-# ABADI Comm - Event Organizer Schedule Management System
+# AbadiComm - Event Organizer Schedule Management System
 
 A Laravel-based web application designed to help event organizers manage worker schedules efficiently. The system prevents scheduling conflicts by automatically detecting when workers or supervisors are double-booked, ensuring smooth event operations.
 
@@ -23,7 +23,7 @@ A Laravel-based web application designed to help event organizers manage worker 
 
 ## 🎯 Overview
 
-ABADI Comm is a schedule management system built for event organizers who need to:
+AbadiComm is a schedule management system built for event organizers who need to:
 - Assign workers to events with specific job descriptions
 - Prevent double-booking of workers and supervisors
 - Track schedules across multiple locations

@@ -5,7 +5,7 @@
   <div class="max-w-md w-full bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
     <div class="p-8 space-y-6">
       <div class="text-center">
-        {{-- <img src="{{ asset('images/logo_small.png') }}" alt="ABADI Comm Logo" class="w-16 h-16 mx-auto mb-4" /> --}}
+        {{-- <img src="{{ asset('images/logo_small.png') }}" alt="AbadiComm Logo" class="w-16 h-16 mx-auto mb-4" /> --}}
         <h2 class="text-3xl font-bold text-blue-600">
           Welcome Back!
         </h2>
