@@ -39,6 +39,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
 
+    // Change Password
+    Route::get('/change-password', [AuthController::class, 'showChangePassword'])->name('change-password');
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+
     // Schedule Management
     Route::get('/schedule', [ScheduleViewController::class, 'showSchedulePage'])->name('schedule.page');
     Route::get('/schedule/edit/{dateKey}/{supervisor}/{start}', [ScheduleViewController::class, 'edit'])->name('schedule.edit');
