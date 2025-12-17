@@ -38,7 +38,7 @@ jobs:
         port: 22
         # Kirim folder lokal 'public/build' ke folder server
         source: "public/build"
-        target: "/opt/stack/apps/management-abadicomm/staging/src/public"
+        target: "/opt/stack/apps/management-abadicomm/staging/public"
         strip_components: 2 # Agar strukturnya pas (opsional, sesuaikan tes nanti)
 
     # 5. Eksekusi Perintah di Server via SSH
@@ -51,7 +51,7 @@ jobs:
         port: 22
         script: |
           echo "A. Masuk ke Folder Project"
-          cd /opt/stack/apps/management-abadicomm/staging/src
+          cd /opt/stack/apps/management-abadicomm/staging
 
           echo "B. Tarik Kode PHP Terbaru"
           git pull origin staging
@@ -64,14 +64,13 @@ jobs:
 
           echo "D. Laravel Maintenance Tasks (Jalan di dalam Container)"
           echo "Asumsi nama service di docker-compose adalah 'app'"
-          echo "Asumsi nama container (container_name) adalah 'management-abadicomm@staging'"
+          echo "Asumsi nama container (container_name) adalah 'management-abadicomm-staging'"
           
           echo "Running Migrations..."
-          docker exec management-abadicomm@staging php artisan migrate --force
+          docker exec management-abadicomm-staging php artisan migrate --force
 
-          echo "E. Fix Permissions"
-          echo "Karena file dikirim via SCP (user SSH), kita harus pastikan"
-          echo "Nginx Host (www-data) bisa membacanya."
           echo "Fixing Permissions..."
-          sudo chown -R www-data:www-data src/public/build
-          sudo chmod -R 755 src/public/build
+          sudo chown -R www-data:www-data public/build
+          sudo chmod -R 755 public/build
+          chmod -R 777 storage
+          chmod -R 777 bootstrap/cache
