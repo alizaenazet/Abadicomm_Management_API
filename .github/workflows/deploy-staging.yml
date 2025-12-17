@@ -68,10 +68,6 @@ jobs:
           
           echo "Running Migrations..."
           docker exec management-abadicomm@staging php artisan migrate --force
-          
-          echo "Clearing Cache..."
-          docker exec management-abadicomm@staging php artisan optimize
-          docker exec management-abadicomm@staging php artisan view:cache
 
           echo "E. Fix Permissions"
           echo "Karena file dikirim via SCP (user SSH), kita harus pastikan"
