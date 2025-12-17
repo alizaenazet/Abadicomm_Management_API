@@ -1,0 +1,19 @@
+services:
+  app:
+    image: management-abadicomm:staging
+    container_name: management-abadicomm-staging
+    build:
+      context: . 
+      dockerfile: DockerfileStaging
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9002:9000"
+    volumes:
+      - ./:/app:rw
+      - ./storage:/app/storage:rw
+      - ./bootstrap/cache:/app/bootstrap/cache:rw
+      - /app/vendor
+    env_file:
+      - ./.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Access host PostgreSQL
