@@ -35,11 +35,10 @@ jobs:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.VPS_SSH_KEY }}
-        password: ${{ secrets.VPS_SSH_PASSWORD }}
         port: 22
         # Kirim folder lokal 'public/build' ke folder server
         source: "public/build"
-        target: "/opt/stack/apps/management-abadicomm/staging/public"
+        target: "/opt/stack/apps/management-abadicomm/staging/public/build"
         strip_components: 2 # Agar strukturnya pas (opsional, sesuaikan tes nanti)
 
     # 5. Eksekusi Perintah di Server via SSH
