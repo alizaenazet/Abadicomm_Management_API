@@ -14,6 +14,14 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
+    public function redirectHome()
+    {
+        if (Auth::check()) {
+            return redirect('/dashboard');
+        }
+        return redirect('/login');
+    }
+
     public function showLogin()
     {
         return view('auth.login');
@@ -44,7 +52,7 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
 
-        public function showRegister()
+    public function showRegister()
     {
         return view('auth.register');
     }
@@ -107,13 +115,13 @@ class AuthController extends Controller
         ]);
 
         $worker = Worker::where('email', $request->email)->first();
-        
+
         // Delete old tokens for this email
         DB::table('password_resets')->where('email', $request->email)->delete();
 
         // Generate new token
         $token = Str::random(64);
-        
+
         // Store token
         DB::table('password_resets')->insert([
             'email' => $request->email,

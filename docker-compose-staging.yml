@@ -9,10 +9,7 @@ services:
     ports:
       - "127.0.0.1:9002:9000"
     volumes:
-      - ./:/app:rw
       - ./storage:/app/storage:rw
-      - ./bootstrap/cache:/app/bootstrap/cache:rw
-      - /app/vendor
     env_file:
       - ./.env
     extra_hosts:
