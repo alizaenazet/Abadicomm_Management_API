@@ -56,13 +56,6 @@ jobs:
           echo "B. Tarik Kode PHP Terbaru"
           git pull origin staging
 
-          echo "do some compile composer"
-          php artisan optimize:clear
-          php artisan storage:link
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-
           echo "C. Restart Container (Update Image & anonymous volumes)"
           echo "Give containers time to finish requests"
           docker compose -f docker-compose-staging.yml stop --timeout 30
