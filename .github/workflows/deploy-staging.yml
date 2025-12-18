@@ -39,7 +39,7 @@ jobs:
         # Kirim folder lokal 'public/build' ke folder server
         source: "public"
         target: "/opt/stack/apps/management-abadicomm/staging/public"
-        strip_components: 2 # Agar strukturnya pas (opsional, sesuaikan tes nanti)
+        strip_components: 1 # Agar strukturnya pas (opsional, sesuaikan tes nanti)
 
     # 5. Eksekusi Perintah di Server via SSH
     - name: Execute Remote Commands
